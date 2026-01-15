@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useHousehold } from '@/contexts/HouseholdContext'
+import { useHousehold, MEMBER_COLORS } from '@/contexts/HouseholdContext'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Trash2, Plus, Users } from 'lucide-react'
@@ -14,12 +14,14 @@ import {
 export function HouseholdMemberList() {
   const { members, addMember, deleteMember } = useHousehold()
   const [newMemberName, setNewMemberName] = useState('')
+  const [selectedColor, setSelectedColor] = useState(MEMBER_COLORS[0])
   const [isOpen, setIsOpen] = useState(false)
 
   const handleAddMember = () => {
     if (newMemberName.trim()) {
-      addMember(newMemberName)
+      addMember(newMemberName, selectedColor)
       setNewMemberName('')
+      setSelectedColor(MEMBER_COLORS[0])
     }
   }
 
@@ -44,16 +46,37 @@ export function HouseholdMemberList() {
 
         <div className="space-y-4">
           {/* Add new member */}
-          <div className="flex gap-2">
-            <Input
-              placeholder="Enter name..."
-              value={newMemberName}
-              onChange={e => setNewMemberName(e.target.value)}
-              onKeyDown={handleKeyDown}
-            />
-            <Button onClick={handleAddMember} disabled={!newMemberName.trim()}>
-              <Plus className="h-4 w-4" />
-            </Button>
+          <div className="space-y-3">
+            <div className="flex gap-2">
+              <Input
+                placeholder="Enter name..."
+                value={newMemberName}
+                onChange={e => setNewMemberName(e.target.value)}
+                onKeyDown={handleKeyDown}
+              />
+              <Button onClick={handleAddMember} disabled={!newMemberName.trim()}>
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">Color:</span>
+              <div className="flex gap-1">
+                {MEMBER_COLORS.map(color => (
+                  <button
+                    key={color}
+                    type="button"
+                    className={`w-6 h-6 rounded-full transition-all ${
+                      selectedColor === color
+                        ? 'ring-2 ring-offset-2 ring-primary'
+                        : 'hover:scale-110'
+                    }`}
+                    style={{ backgroundColor: color }}
+                    onClick={() => setSelectedColor(color)}
+                    aria-label={`Select ${color} color`}
+                  />
+                ))}
+              </div>
+            </div>
           </div>
 
           {/* Member list */}

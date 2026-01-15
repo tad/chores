@@ -66,6 +66,9 @@ All data is stored in your browser's localStorage. This means:
 
 ## Changelog
 
+### 1.0.2
+- Added color picker when creating new household members
+
 ### 1.0.1
 - Added contribution guidelines to CLAUDE.md for pre-push checklist
 
