@@ -117,7 +117,7 @@ export function RecurrenceSelect({ value, onChange }: RecurrenceSelectProps) {
               <Label className="text-sm">On the</Label>
               <div className="flex items-center gap-2">
                 <Select
-                  value={config.bySetPos?.toString() || ''}
+                  value={config.bySetPos !== undefined ? config.bySetPos.toString() : undefined}
                   onValueChange={v => {
                     if (v) {
                       updateConfig({ bySetPos: parseInt(v), byMonthDay: undefined })
@@ -139,7 +139,7 @@ export function RecurrenceSelect({ value, onChange }: RecurrenceSelectProps) {
                 </Select>
                 {config.bySetPos && (
                   <Select
-                    value={config.byWeekday?.[0]?.toString() || ''}
+                    value={config.byWeekday?.[0] !== undefined ? config.byWeekday[0].toString() : undefined}
                     onValueChange={v => updateConfig({ byWeekday: v ? [parseInt(v)] : undefined })}
                   >
                     <SelectTrigger className="w-32">

@@ -153,12 +153,15 @@ export function ChoreForm({ open, onOpenChange, editChore, initialDate }: ChoreF
           {/* Assignee */}
           <div className="space-y-2">
             <Label>Assign to</Label>
-            <Select value={assigneeId} onValueChange={setAssigneeId}>
+            <Select
+              value={assigneeId || "__unassigned__"}
+              onValueChange={(v) => setAssigneeId(v === "__unassigned__" ? "" : v)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Unassigned" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Unassigned</SelectItem>
+                <SelectItem value="__unassigned__">Unassigned</SelectItem>
                 {members.map(member => (
                   <SelectItem key={member.id} value={member.id}>
                     <div className="flex items-center gap-2">
