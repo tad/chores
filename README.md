@@ -64,6 +64,11 @@ All data is stored in your browser's localStorage. This means:
 - Data persists between sessions
 - Clearing browser data will remove your chores
 
+## Changelog
+
+### 1.0.1
+- Added contribution guidelines to CLAUDE.md for pre-push checklist
+
 ## License
 
 MIT

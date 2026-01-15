@@ -107,6 +107,12 @@ Three levels: `low` (green), `medium` (yellow), `high` (red) - displayed as left
 **IMPORTANT** When you work on a new feature or bug, create a git branch first.
 Then work on changes in that branch for the remainder of the session.
 
+## Before Pushing to GitHub
+
+Before every push to GitHub:
+1. Update `README.md` with a short summary of what changed
+2. Increment the version number in `package.json`
+
 ---
 
 ## Additional Documentation
