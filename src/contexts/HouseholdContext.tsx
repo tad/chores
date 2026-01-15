@@ -4,7 +4,7 @@ import type { HouseholdMember } from '@/types'
 
 interface HouseholdContextType {
   members: HouseholdMember[]
-  addMember: (name: string) => void
+  addMember: (name: string, color?: string) => void
   updateMember: (id: string, updates: Partial<Omit<HouseholdMember, 'id'>>) => void
   deleteMember: (id: string) => void
   getMemberById: (id: string) => HouseholdMember | undefined
@@ -13,7 +13,7 @@ interface HouseholdContextType {
 const HouseholdContext = createContext<HouseholdContextType | null>(null)
 
 // Preset colors for household members
-const MEMBER_COLORS = [
+export const MEMBER_COLORS = [
   '#3b82f6', // blue
   '#10b981', // emerald
   '#f59e0b', // amber
@@ -38,11 +38,11 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
   }, [members])
 
   const addMember = useCallback(
-    (name: string) => {
+    (name: string, color?: string) => {
       const newMember: HouseholdMember = {
         id: generateId(),
         name: name.trim(),
-        color: getNextColor(),
+        color: color || getNextColor(),
       }
       setMembers(prev => [...prev, newMember])
     },
