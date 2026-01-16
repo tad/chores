@@ -68,13 +68,28 @@ export function ChoreForm({ open, onOpenChange, editChore, initialDate }: ChoreF
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
 
+    // Validate and sanitize time input
+    let sanitizedTime: string | undefined = undefined
+    if (dueTime) {
+      // Remove any whitespace and ensure it's in HH:mm format
+      const trimmedTime = dueTime.trim()
+      // Check if it matches HH:mm format (24-hour)
+      if (/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(trimmedTime)) {
+        sanitizedTime = trimmedTime
+      } else {
+        console.error('Invalid time format:', dueTime)
+        alert('Please enter a valid time in HH:mm format (e.g., 14:30 for 2:30 PM)')
+        return
+      }
+    }
+
     const choreData = {
       title: title.trim(),
       description: description.trim() || undefined,
       priority,
       assigneeId: assigneeId || null,
       dueDate: parse(dueDate, 'yyyy-MM-dd', new Date()).toISOString(),
-      dueTime: dueTime || undefined,
+      dueTime: sanitizedTime,
       recurrenceRule: recurrence
         ? createRRule(recurrence, parse(dueDate, 'yyyy-MM-dd', new Date()))
         : undefined,
@@ -147,6 +162,8 @@ export function ChoreForm({ open, onOpenChange, editChore, initialDate }: ChoreF
               type="time"
               value={dueTime}
               onChange={e => setDueTime(e.target.value)}
+              step="60"
+              placeholder="--:--"
             />
             {!dueTime && (
               <p className="text-xs text-muted-foreground">
