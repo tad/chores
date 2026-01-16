@@ -104,8 +104,10 @@ Three levels: `low` (green), `medium` (yellow), `high` (red) - displayed as left
 
 ## Adding New Features or Fixing Bugs
 
-**IMPORTANT** When you work on a new feature or bug, create a git branch first.
-Then work on changes in that branch for the remainder of the session.
+**IMPORTANT** When you work on a new feature or bug:
+1. Create a git branch first and work on changes in that branch for the remainder of the session
+2. Create tests for the new feature or bug fix
+3. Verify all tests pass before considering the work complete
 
 ## Before Pushing to GitHub
 
