@@ -42,6 +42,35 @@ export function ChoreForm({ open, onOpenChange, editChore, initialDate }: ChoreF
   const [dueTime, setDueTime] = useState<string>('')
   const [recurrence, setRecurrence] = useState<RecurrenceConfig | null>(null)
 
+  // Convert 12-hour time format to 24-hour format
+  const convertTo24Hour = (timeStr: string): string => {
+    const time12hrPattern = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i
+    const match = timeStr.trim().match(time12hrPattern)
+
+    if (match) {
+      let hours = parseInt(match[1], 10)
+      const minutes = match[2]
+      const period = match[3].toUpperCase()
+
+      if (period === 'PM' && hours !== 12) {
+        hours += 12
+      } else if (period === 'AM' && hours === 12) {
+        hours = 0
+      }
+
+      return `${hours.toString().padStart(2, '0')}:${minutes}`
+    }
+
+    return timeStr
+  }
+
+  const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    // Auto-convert 12-hour format to 24-hour format
+    const converted = convertTo24Hour(value)
+    setDueTime(converted)
+  }
+
   // Reset form when dialog opens or editChore changes
   useEffect(() => {
     if (open) {
@@ -161,7 +190,14 @@ export function ChoreForm({ open, onOpenChange, editChore, initialDate }: ChoreF
               id="dueTime"
               type="time"
               value={dueTime}
-              onChange={e => setDueTime(e.target.value)}
+              onChange={handleTimeChange}
+              onBlur={e => {
+                // Convert on blur in case user typed 12-hour format
+                const converted = convertTo24Hour(e.target.value)
+                if (converted !== e.target.value) {
+                  setDueTime(converted)
+                }
+              }}
               step="60"
               placeholder="--:--"
             />
