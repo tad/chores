@@ -267,4 +267,50 @@ describe('ChoreCard', () => {
       expect(card).toBeInTheDocument()
     })
   })
+
+  describe('event propagation', () => {
+    it('prevents click events from bubbling to parent elements', async () => {
+      const user = userEvent.setup()
+      const onEdit = vi.fn()
+      const parentOnClick = vi.fn()
+
+      const { container } = renderWithProviders(
+        <div onClick={parentOnClick}>
+          <ChoreCard instance={mockChoreInstance} onEdit={onEdit} />
+        </div>
+      )
+
+      // Click on the chore card
+      const card = container.querySelector('.cursor-pointer')
+      if (card) {
+        await user.click(card)
+      }
+
+      // Parent onClick should NOT be called because event propagation is stopped
+      expect(parentOnClick).not.toHaveBeenCalled()
+    })
+
+    it('still allows popover to open when clicked', async () => {
+      const user = userEvent.setup()
+      const onEdit = vi.fn()
+      const parentOnClick = vi.fn()
+
+      renderWithProviders(
+        <div onClick={parentOnClick}>
+          <ChoreCard instance={mockChoreInstance} onEdit={onEdit} />
+        </div>
+      )
+
+      // Click on the chore card
+      await user.click(screen.getByText('Test Chore'))
+
+      // Popover should open
+      await waitFor(() => {
+        expect(screen.getByRole('button', { name: /edit/i })).toBeInTheDocument()
+      })
+
+      // Parent onClick should NOT be called
+      expect(parentOnClick).not.toHaveBeenCalled()
+    })
+  })
 })

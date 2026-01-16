@@ -84,30 +84,32 @@ export function ChoreCard({ instance, onEdit, compact = false }: ChoreCardProps)
   )
 
   return (
-    <Popover open={open} onOpenChange={setOpen}>
-      <PopoverTrigger asChild>
-        {cardContent}
-      </PopoverTrigger>
-      <PopoverContent className="w-48 p-2" align="start">
-        <div className="flex flex-col gap-1">
-          <Button
-            variant="ghost"
-            className="w-full justify-start gap-2"
-            onClick={handleEdit}
-          >
-            <Pencil className="h-4 w-4" />
-            Edit
-          </Button>
-          <Button
-            variant="ghost"
-            className="w-full justify-start gap-2 text-green-600 hover:text-green-700 hover:bg-green-50"
-            onClick={handleMarkDone}
-          >
-            <CheckCircle className="h-4 w-4" />
-            Mark Done
-          </Button>
-        </div>
-      </PopoverContent>
-    </Popover>
+    <div onClick={(e) => e.stopPropagation()}>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          {cardContent}
+        </PopoverTrigger>
+        <PopoverContent className="w-48 p-2" align="start">
+          <div className="flex flex-col gap-1">
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-2"
+              onClick={handleEdit}
+            >
+              <Pencil className="h-4 w-4" />
+              Edit
+            </Button>
+            <Button
+              variant="ghost"
+              className="w-full justify-start gap-2 text-green-600 hover:text-green-700 hover:bg-green-50"
+              onClick={handleMarkDone}
+            >
+              <CheckCircle className="h-4 w-4" />
+              Mark Done
+            </Button>
+          </div>
+        </PopoverContent>
+      </Popover>
+    </div>
   )
 }
