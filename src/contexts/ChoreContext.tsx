@@ -1,6 +1,6 @@
-import { createContext, useContext, useCallback, useMemo, type ReactNode } from 'react'
+import { createContext, useContext, useCallback, useMemo, useEffect, type ReactNode } from 'react'
 import { useLocalStorage } from '@/hooks/useLocalStorage'
-import type { Chore, ChoreInstance } from '@/types'
+import type { Chore, ChoreInstance, CompletedChoreInstance } from '@/types'
 import { getRecurrenceInstances } from '@/lib/recurrence'
 import {
   startOfDay,
@@ -21,6 +21,7 @@ interface ChoreContextType {
   getChoresForDay: (date: Date) => ChoreInstance[]
   getChoresForWeek: (date: Date) => ChoreInstance[]
   getChoresForMonth: (date: Date) => ChoreInstance[]
+  getCompletedChores: () => CompletedChoreInstance[]
 }
 
 const ChoreContext = createContext<ChoreContextType | null>(null)
@@ -31,6 +32,32 @@ function generateId(): string {
 
 export function ChoreProvider({ children }: { children: ReactNode }) {
   const [chores, setChores] = useLocalStorage<Chore[]>('chores', [])
+
+  // Migration: fix any recurring chores incorrectly marked as completed
+  useEffect(() => {
+    const hasInvalidRecurringChores = chores.some(
+      chore => chore.recurrenceRule && chore.completed
+    )
+
+    if (hasInvalidRecurringChores) {
+      setChores(prev =>
+        prev.map(chore => {
+          if (chore.recurrenceRule && chore.completed) {
+            // Reset invalid state - completed flag should not be used for recurring chores
+            return {
+              ...chore,
+              completed: false,
+              // Migrate the single completedDate to completedDates array
+              completedDates: chore.completedDate ? [chore.completedDate] : undefined,
+              completedDate: undefined,
+            }
+          }
+          return chore
+        })
+      )
+    }
+  }, []) // Run once on mount
+  // eslint-disable-next-line react-hooks/exhaustive-deps
 
   const addChore = useCallback(
     (choreData: Omit<Chore, 'id' | 'createdAt' | 'completed'>) => {
@@ -67,8 +94,23 @@ export function ChoreProvider({ children }: { children: ReactNode }) {
         prev.map(chore => {
           if (chore.id !== id) return chore
 
-          // For recurring chores, we mark only the specific instance as completed
-          // by updating the completed status and date
+          // For recurring chores, add date to completedDates array
+          if (chore.recurrenceRule) {
+            const dateStr = date.toISOString().split('T')[0] // Use date part only for comparison
+            const existingDates = chore.completedDates || []
+
+            // Avoid duplicates
+            if (existingDates.some(d => d.startsWith(dateStr))) {
+              return chore
+            }
+
+            return {
+              ...chore,
+              completedDates: [...existingDates, date.toISOString()],
+            }
+          }
+
+          // For non-recurring chores, mark as completed (existing behavior)
           return {
             ...chore,
             completed: true,
@@ -85,11 +127,6 @@ export function ChoreProvider({ children }: { children: ReactNode }) {
       const instances: ChoreInstance[] = []
 
       chores.forEach(chore => {
-        // Skip completed chores
-        if (chore.completed) return
-
-        const choreDate = new Date(chore.dueDate)
-
         if (chore.recurrenceRule) {
           // Get all instances within the range
           const recurrenceInstances = getRecurrenceInstances(
@@ -98,14 +135,25 @@ export function ChoreProvider({ children }: { children: ReactNode }) {
             end
           )
           recurrenceInstances.forEach(date => {
-            instances.push({
-              chore,
-              date,
-              isRecurrenceInstance: true,
-            })
+            // Check if this specific date is completed
+            const dateStr = date.toISOString().split('T')[0]
+            const isCompleted = chore.completedDates?.some(
+              completedDate => completedDate.startsWith(dateStr)
+            )
+
+            if (!isCompleted) {
+              instances.push({
+                chore,
+                date,
+                isRecurrenceInstance: true,
+              })
+            }
           })
         } else {
-          // Non-recurring chore - check if it falls within range
+          // Non-recurring chore - skip if completed (existing behavior)
+          if (chore.completed) return
+
+          const choreDate = new Date(chore.dueDate)
           if (choreDate >= start && choreDate <= end) {
             instances.push({
               chore,
@@ -145,6 +193,37 @@ export function ChoreProvider({ children }: { children: ReactNode }) {
     [getChoresForRange]
   )
 
+  const getCompletedChores = useCallback((): CompletedChoreInstance[] => {
+    const completedInstances: CompletedChoreInstance[] = []
+
+    chores.forEach(chore => {
+      if (chore.recurrenceRule && chore.completedDates) {
+        // Add each completed instance of recurring chores
+        chore.completedDates.forEach(completedDate => {
+          completedInstances.push({
+            chore,
+            completedDate,
+            instanceDate: completedDate,
+          })
+        })
+      } else if (chore.completed && chore.completedDate) {
+        // Non-recurring completed chores
+        completedInstances.push({
+          chore,
+          completedDate: chore.completedDate,
+          instanceDate: chore.dueDate,
+        })
+      }
+    })
+
+    // Sort by completion date, most recent first
+    return completedInstances.sort((a, b) => {
+      const dateA = new Date(a.completedDate).getTime()
+      const dateB = new Date(b.completedDate).getTime()
+      return dateB - dateA
+    })
+  }, [chores])
+
   const value = useMemo(
     () => ({
       chores,
@@ -156,6 +235,7 @@ export function ChoreProvider({ children }: { children: ReactNode }) {
       getChoresForDay,
       getChoresForWeek,
       getChoresForMonth,
+      getCompletedChores,
     }),
     [
       chores,
@@ -167,6 +247,7 @@ export function ChoreProvider({ children }: { children: ReactNode }) {
       getChoresForDay,
       getChoresForWeek,
       getChoresForMonth,
+      getCompletedChores,
     ]
   )
 

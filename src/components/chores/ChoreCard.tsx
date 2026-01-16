@@ -21,7 +21,7 @@ const PRIORITY_COLORS = {
 
 export function ChoreCard({ instance, onEdit, compact = false }: ChoreCardProps) {
   const { getMemberById } = useHousehold()
-  const { deleteChore } = useChores()
+  const { completeChore } = useChores()
   const { chore, isRecurrenceInstance } = instance
   const [open, setOpen] = useState(false)
 
@@ -34,7 +34,7 @@ export function ChoreCard({ instance, onEdit, compact = false }: ChoreCardProps)
 
   const handleMarkDone = () => {
     setOpen(false)
-    deleteChore(chore.id)
+    completeChore(chore.id, instance.date)
   }
 
   const cardContent = (

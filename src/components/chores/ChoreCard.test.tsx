@@ -170,7 +170,7 @@ describe('ChoreCard', () => {
       })
     })
 
-    it('deletes chore when clicking Mark Done', async () => {
+    it('marks chore as completed when clicking Mark Done', async () => {
       const user = userEvent.setup()
       const onEdit = vi.fn()
 
@@ -189,10 +189,13 @@ describe('ChoreCard', () => {
         await user.click(markDoneButton)
       })
 
-      // Verify the chore is deleted from localStorage
+      // Verify the chore is marked as completed in localStorage
       await waitFor(() => {
         const storedChores = JSON.parse(localStorage.getItem('chores') || '[]')
-        expect(storedChores.find((c: { id: string }) => c.id === 'test-chore-1')).toBeUndefined()
+        const chore = storedChores.find((c: { id: string }) => c.id === 'test-chore-1')
+        expect(chore).toBeDefined()
+        expect(chore.completed).toBe(true)
+        expect(chore.completedDate).toBeDefined()
       })
     })
 

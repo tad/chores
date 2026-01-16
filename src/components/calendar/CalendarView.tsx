@@ -8,11 +8,12 @@ import {
   endOfWeek,
 } from 'date-fns'
 import { Button } from '@/components/ui/button'
-import { ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Plus, CheckCircle2 } from 'lucide-react'
 import { MonthView } from './MonthView'
 import { WeekView } from './WeekView'
 import { DayView } from './DayView'
 import { ChoreForm } from '@/components/chores/ChoreForm'
+import { CompletedTasksSidebar } from '@/components/chores/CompletedTasksSidebar'
 import type { CalendarView as CalendarViewType, Chore } from '@/types'
 import { cn } from '@/lib/utils'
 
@@ -22,6 +23,7 @@ export function CalendarView() {
   const [formOpen, setFormOpen] = useState(false)
   const [selectedDate, setSelectedDate] = useState<Date | undefined>()
   const [editingChore, setEditingChore] = useState<Chore | undefined>()
+  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const navigate = (direction: 'prev' | 'next') => {
     const modifier = direction === 'prev' ? -1 : 1
@@ -116,32 +118,43 @@ export function CalendarView() {
             <Plus className="h-4 w-4 mr-2" />
             Add Chore
           </Button>
+
+          <Button variant="outline" onClick={() => setSidebarOpen(prev => !prev)}>
+            <CheckCircle2 className="h-4 w-4 mr-2" />
+            Completed
+          </Button>
         </div>
       </div>
 
-      {/* Calendar body */}
-      <div className="flex-1 overflow-hidden">
-        {view === 'month' && (
-          <MonthView
-            currentDate={currentDate}
-            onDateClick={handleDateClick}
-            onChoreClick={handleChoreClick}
-          />
-        )}
-        {view === 'week' && (
-          <WeekView
-            currentDate={currentDate}
-            onDateClick={handleDateClick}
-            onChoreClick={handleChoreClick}
-          />
-        )}
-        {view === 'day' && (
-          <DayView
-            currentDate={currentDate}
-            onDateClick={handleDateClick}
-            onChoreClick={handleChoreClick}
-          />
-        )}
+      {/* Main content with optional sidebar */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Calendar body */}
+        <div className="flex-1 overflow-hidden">
+          {view === 'month' && (
+            <MonthView
+              currentDate={currentDate}
+              onDateClick={handleDateClick}
+              onChoreClick={handleChoreClick}
+            />
+          )}
+          {view === 'week' && (
+            <WeekView
+              currentDate={currentDate}
+              onDateClick={handleDateClick}
+              onChoreClick={handleChoreClick}
+            />
+          )}
+          {view === 'day' && (
+            <DayView
+              currentDate={currentDate}
+              onDateClick={handleDateClick}
+              onChoreClick={handleChoreClick}
+            />
+          )}
+        </div>
+
+        {/* Completed Tasks Sidebar */}
+        <CompletedTasksSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       </div>
 
       {/* Chore form dialog */}

@@ -36,6 +36,7 @@ describe('ChoreContext', () => {
       expect(typeof result.current.getChoresForDay).toBe('function')
       expect(typeof result.current.getChoresForWeek).toBe('function')
       expect(typeof result.current.getChoresForMonth).toBe('function')
+      expect(typeof result.current.getCompletedChores).toBe('function')
     })
   })
 
@@ -379,6 +380,77 @@ describe('ChoreContext', () => {
 
       expect(result.current.chores[0].completed).toBe(false)
     })
+
+    it('adds date to completedDates array for recurring chores', () => {
+      const { result } = renderHook(() => useChores(), { wrapper })
+
+      act(() => {
+        result.current.addChore({
+          title: 'Daily Chore',
+          priority: 'medium',
+          assigneeId: null,
+          dueDate: '2025-01-15T10:00:00Z',
+          recurrenceRule: 'DTSTART:20250115T100000Z\nRRULE:FREQ=DAILY;INTERVAL=1',
+        })
+      })
+
+      const choreId = result.current.chores[0].id
+      const completionDate = new Date('2025-01-15T12:00:00Z')
+
+      act(() => {
+        result.current.completeChore(choreId, completionDate)
+      })
+
+      expect(result.current.chores[0].completedDates).toContain(completionDate.toISOString())
+      expect(result.current.chores[0].completed).toBe(false)
+    })
+
+    it('does not add duplicate dates to completedDates', () => {
+      const { result } = renderHook(() => useChores(), { wrapper })
+
+      act(() => {
+        result.current.addChore({
+          title: 'Daily Chore',
+          priority: 'medium',
+          assigneeId: null,
+          dueDate: '2025-01-15T10:00:00Z',
+          recurrenceRule: 'DTSTART:20250115T100000Z\nRRULE:FREQ=DAILY;INTERVAL=1',
+        })
+      })
+
+      const choreId = result.current.chores[0].id
+      const completionDate = new Date('2025-01-15T12:00:00Z')
+
+      act(() => {
+        result.current.completeChore(choreId, completionDate)
+        result.current.completeChore(choreId, completionDate)
+      })
+
+      expect(result.current.chores[0].completedDates).toHaveLength(1)
+    })
+
+    it('allows completing multiple different dates', () => {
+      const { result } = renderHook(() => useChores(), { wrapper })
+
+      act(() => {
+        result.current.addChore({
+          title: 'Daily Chore',
+          priority: 'medium',
+          assigneeId: null,
+          dueDate: '2025-01-15T10:00:00Z',
+          recurrenceRule: 'DTSTART:20250115T100000Z\nRRULE:FREQ=DAILY;INTERVAL=1',
+        })
+      })
+
+      const choreId = result.current.chores[0].id
+
+      act(() => {
+        result.current.completeChore(choreId, new Date('2025-01-15T12:00:00Z'))
+        result.current.completeChore(choreId, new Date('2025-01-16T12:00:00Z'))
+      })
+
+      expect(result.current.chores[0].completedDates).toHaveLength(2)
+    })
   })
 
   describe('getChoresForRange', () => {
@@ -500,6 +572,40 @@ describe('ChoreContext', () => {
       expect(instances[0].chore.title).toBe('Earlier')
       expect(instances[1].chore.title).toBe('Later')
     })
+
+    it('excludes completed instances but keeps uncompleted ones for recurring chores', () => {
+      const { result } = renderHook(() => useChores(), { wrapper })
+
+      act(() => {
+        result.current.addChore({
+          title: 'Daily Chore',
+          priority: 'medium',
+          assigneeId: null,
+          dueDate: '2025-01-15T10:00:00Z',
+          recurrenceRule: 'DTSTART:20250115T100000Z\nRRULE:FREQ=DAILY;INTERVAL=1',
+        })
+      })
+
+      const choreId = result.current.chores[0].id
+
+      // Complete one instance (Jan 16)
+      act(() => {
+        result.current.completeChore(choreId, new Date('2025-01-16T10:00:00Z'))
+      })
+
+      // Query for Jan 15-17
+      const instances = result.current.getChoresForRange(
+        new Date('2025-01-15T00:00:00Z'),
+        new Date('2025-01-17T23:59:59Z')
+      )
+
+      // Should have Jan 15 and Jan 17, but NOT Jan 16
+      expect(instances.length).toBe(2)
+      const dates = instances.map(i => i.date.toISOString().split('T')[0])
+      expect(dates).toContain('2025-01-15')
+      expect(dates).toContain('2025-01-17')
+      expect(dates).not.toContain('2025-01-16')
+    })
   })
 
   describe('getChoresForDay', () => {
@@ -587,6 +693,149 @@ describe('ChoreContext', () => {
       expect(instances.find(i => i.chore.title === 'Jan 1st')).toBeDefined()
       expect(instances.find(i => i.chore.title === 'Jan 31st')).toBeDefined()
       expect(instances.find(i => i.chore.title === 'Feb 1st')).toBeUndefined()
+    })
+  })
+
+  describe('getCompletedChores', () => {
+    it('returns only completed chores', () => {
+      const { result } = renderHook(() => useChores(), { wrapper })
+
+      act(() => {
+        result.current.addChore({
+          title: 'Incomplete',
+          priority: 'medium',
+          assigneeId: null,
+          dueDate: '2025-01-15T10:00:00Z',
+        })
+        result.current.addChore({
+          title: 'Complete',
+          priority: 'high',
+          assigneeId: null,
+          dueDate: '2025-01-16T10:00:00Z',
+        })
+      })
+
+      const completeId = result.current.chores[1].id
+
+      act(() => {
+        result.current.completeChore(completeId, new Date('2025-01-16T12:00:00Z'))
+      })
+
+      const completed = result.current.getCompletedChores()
+
+      expect(completed).toHaveLength(1)
+      expect(completed[0].chore.title).toBe('Complete')
+    })
+
+    it('sorts by completion date, most recent first', () => {
+      const { result } = renderHook(() => useChores(), { wrapper })
+
+      act(() => {
+        result.current.addChore({
+          title: 'First Completed',
+          priority: 'low',
+          assigneeId: null,
+          dueDate: '2025-01-10T10:00:00Z',
+        })
+        result.current.addChore({
+          title: 'Second Completed',
+          priority: 'medium',
+          assigneeId: null,
+          dueDate: '2025-01-15T10:00:00Z',
+        })
+      })
+
+      act(() => {
+        result.current.completeChore(result.current.chores[0].id, new Date('2025-01-10T12:00:00Z'))
+      })
+
+      act(() => {
+        result.current.completeChore(result.current.chores[1].id, new Date('2025-01-15T12:00:00Z'))
+      })
+
+      const completed = result.current.getCompletedChores()
+
+      expect(completed).toHaveLength(2)
+      expect(completed[0].chore.title).toBe('Second Completed')
+      expect(completed[1].chore.title).toBe('First Completed')
+    })
+
+    it('returns empty array when no chores are completed', () => {
+      const { result } = renderHook(() => useChores(), { wrapper })
+
+      act(() => {
+        result.current.addChore({
+          title: 'Incomplete',
+          priority: 'medium',
+          assigneeId: null,
+          dueDate: '2025-01-15T10:00:00Z',
+        })
+      })
+
+      const completed = result.current.getCompletedChores()
+
+      expect(completed).toHaveLength(0)
+    })
+
+    it('returns individual completed instances of recurring chores', () => {
+      const { result } = renderHook(() => useChores(), { wrapper })
+
+      act(() => {
+        result.current.addChore({
+          title: 'Daily Chore',
+          priority: 'medium',
+          assigneeId: null,
+          dueDate: '2025-01-15T10:00:00Z',
+          recurrenceRule: 'DTSTART:20250115T100000Z\nRRULE:FREQ=DAILY;INTERVAL=1',
+        })
+      })
+
+      const choreId = result.current.chores[0].id
+
+      act(() => {
+        result.current.completeChore(choreId, new Date('2025-01-15T12:00:00Z'))
+        result.current.completeChore(choreId, new Date('2025-01-16T14:00:00Z'))
+      })
+
+      const completed = result.current.getCompletedChores()
+
+      expect(completed).toHaveLength(2)
+      expect(completed[0].chore.title).toBe('Daily Chore')
+      expect(completed[1].chore.title).toBe('Daily Chore')
+    })
+
+    it('returns both recurring and non-recurring completed chores', () => {
+      const { result } = renderHook(() => useChores(), { wrapper })
+
+      act(() => {
+        // Add recurring chore
+        result.current.addChore({
+          title: 'Daily Chore',
+          priority: 'medium',
+          assigneeId: null,
+          dueDate: '2025-01-15T10:00:00Z',
+          recurrenceRule: 'DTSTART:20250115T100000Z\nRRULE:FREQ=DAILY;INTERVAL=1',
+        })
+        // Add non-recurring chore
+        result.current.addChore({
+          title: 'One-time Chore',
+          priority: 'high',
+          assigneeId: null,
+          dueDate: '2025-01-20T10:00:00Z',
+        })
+      })
+
+      const recurringId = result.current.chores[0].id
+      const oneTimeId = result.current.chores[1].id
+
+      act(() => {
+        result.current.completeChore(recurringId, new Date('2025-01-15T12:00:00Z'))
+        result.current.completeChore(oneTimeId, new Date('2025-01-20T15:00:00Z'))
+      })
+
+      const completed = result.current.getCompletedChores()
+
+      expect(completed).toHaveLength(2)
     })
   })
 })

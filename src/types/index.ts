@@ -16,6 +16,7 @@ export interface Chore {
   recurrenceRule?: string // RRULE string for recurring chores
   completed: boolean
   completedDate?: string
+  completedDates?: string[] // ISO date strings for completed recurring instances
   createdAt: string
 }
 
@@ -25,6 +26,12 @@ export interface ChoreInstance {
   chore: Chore
   date: Date
   isRecurrenceInstance: boolean
+}
+
+export interface CompletedChoreInstance {
+  chore: Chore
+  completedDate: string
+  instanceDate: string
 }
 
 // Recurrence pattern options for the UI
