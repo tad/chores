@@ -66,29 +66,36 @@ export function ChoreForm({ open, onOpenChange, editChore, initialDate }: ChoreF
 
   const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
+    console.log('handleTimeChange called with:', value)
     // Auto-convert 12-hour format to 24-hour format
     const converted = convertTo24Hour(value)
+    console.log('Converted to:', converted)
     setDueTime(converted)
   }
 
   // Reset form when dialog opens or editChore changes
   useEffect(() => {
+    console.log('Form reset effect triggered, open:', open)
     if (open) {
       if (editChore) {
+        console.log('Editing chore:', editChore)
         setTitle(editChore.title)
         setDescription(editChore.description || '')
         setPriority(editChore.priority)
         setAssigneeId(editChore.assigneeId || '')
         setDueDate(editChore.dueDate.split('T')[0])
         setDueTime(editChore.dueTime || '')
+        console.log('Set dueTime to:', editChore.dueTime || '(empty)')
         setRecurrence(null) // TODO: parse existing recurrence
       } else {
+        console.log('Creating new chore')
         setTitle('')
         setDescription('')
         setPriority('medium')
         setAssigneeId('')
         setDueDate(initialDate ? format(initialDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'))
         setDueTime('')
+        console.log('Set dueTime to empty string')
         setRecurrence(null)
       }
     }
@@ -198,8 +205,12 @@ export function ChoreForm({ open, onOpenChange, editChore, initialDate }: ChoreF
                   setDueTime(converted)
                 }
               }}
+              onFocus={() => {
+                // Debug: log current value when focused
+                console.log('Time input focused, current value:', dueTime)
+              }}
+              autoComplete="off"
               step="60"
-              placeholder="--:--"
             />
             {!dueTime && (
               <p className="text-xs text-muted-foreground">
