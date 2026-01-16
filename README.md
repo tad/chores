@@ -66,6 +66,10 @@ All data is stored in your browser's localStorage. This means:
 
 ## Changelog
 
+### 1.0.4
+- Added click-to-action menu for chores on calendar: click any chore to see Edit and Mark Done options
+- Mark Done now deletes the chore (simplified completion flow)
+
 ### 1.0.3
 - Fixed bug where "Every 2 days" was displayed as "Every 2 dais"
 - Fixed weekday index asymmetry in recurrence parsing (roundtrip now preserves original weekday values)
