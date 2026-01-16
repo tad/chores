@@ -115,6 +115,10 @@ Before every push to GitHub:
 1. Update `README.md` with a short summary of what changed
 2. Increment the version number in `package.json`
 
+## After a PR is Merged
+
+When the user says they have merged a pull request, automatically checkout main and pull the latest changes.
+
 ---
 
 ## Additional Documentation

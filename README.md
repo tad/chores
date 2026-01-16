@@ -66,6 +66,11 @@ All data is stored in your browser's localStorage. This means:
 
 ## Changelog
 
+### 1.0.3
+- Fixed bug where "Every 2 days" was displayed as "Every 2 dais"
+- Fixed weekday index asymmetry in recurrence parsing (roundtrip now preserves original weekday values)
+- Added accessible dialog description to Household Members dialog
+
 ### 1.0.2
 - Added color picker when creating new household members
 

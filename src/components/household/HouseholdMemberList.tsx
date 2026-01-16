@@ -6,6 +6,7 @@ import { Trash2, Plus, Users } from 'lucide-react'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -47,6 +48,9 @@ export function HouseholdMemberList() {
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Household Members</DialogTitle>
+          <DialogDescription>
+            Add and manage household members who can be assigned to chores.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
