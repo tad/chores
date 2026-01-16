@@ -66,6 +66,12 @@ All data is stored in your browser's localStorage. This means:
 
 ## Changelog
 
+### 1.0.6
+- Fixed recurring task completion bug where marking one instance as complete would hide all future instances
+- Added individual instance tracking for recurring chores with completedDates array
+- Updated completed tasks sidebar to show individual recurring instances with repeat icon
+- Added migration to fix existing incorrectly marked recurring chores
+
 ### 1.0.5
 - Fixed bug where clicking Edit on a chore would open an empty "Add Chore" dialog instead of the edit dialog with the chore's data
 
