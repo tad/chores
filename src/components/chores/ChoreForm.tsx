@@ -21,7 +21,7 @@ import {
 import { RecurrenceSelect } from './RecurrenceSelect'
 import { createRRule } from '@/lib/recurrence'
 import type { Chore, Priority, RecurrenceConfig } from '@/types'
-import { format } from 'date-fns'
+import { format, parse } from 'date-fns'
 
 interface ChoreFormProps {
   open: boolean
@@ -70,9 +70,9 @@ export function ChoreForm({ open, onOpenChange, editChore, initialDate }: ChoreF
       description: description.trim() || undefined,
       priority,
       assigneeId: assigneeId || null,
-      dueDate: new Date(dueDate).toISOString(),
+      dueDate: parse(dueDate, 'yyyy-MM-dd', new Date()).toISOString(),
       recurrenceRule: recurrence
-        ? createRRule(recurrence, new Date(dueDate))
+        ? createRRule(recurrence, parse(dueDate, 'yyyy-MM-dd', new Date()))
         : undefined,
     }
 
