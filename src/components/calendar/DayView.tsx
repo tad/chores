@@ -57,7 +57,7 @@ export function DayView({ currentDate, onDateClick, onChoreClick }: DayViewProps
               <ChoreCard
                 key={`${instance.chore.id}-${idx}`}
                 instance={instance}
-                onClick={() => onChoreClick(instance.chore)}
+                onEdit={() => onChoreClick(instance.chore)}
               />
             ))}
           </div>

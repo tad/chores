@@ -76,7 +76,7 @@ export function WeekView({ currentDate, onDateClick, onChoreClick }: WeekViewPro
                   <ChoreCard
                     key={`${instance.chore.id}-${idx}`}
                     instance={instance}
-                    onClick={() => onChoreClick(instance.chore)}
+                    onEdit={() => onChoreClick(instance.chore)}
                   />
                 ))}
                 {dayChores.length === 0 && (

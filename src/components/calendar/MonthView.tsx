@@ -83,7 +83,7 @@ export function MonthView({ currentDate, onDateClick, onChoreClick }: MonthViewP
                   <ChoreCard
                     key={`${instance.chore.id}-${idx}`}
                     instance={instance}
-                    onClick={() => onChoreClick(instance.chore)}
+                    onEdit={() => onChoreClick(instance.chore)}
                     compact
                   />
                 ))}
