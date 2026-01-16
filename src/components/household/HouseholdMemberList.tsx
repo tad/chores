@@ -10,9 +10,14 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover'
 
 export function HouseholdMemberList() {
-  const { members, addMember, deleteMember } = useHousehold()
+  const { members, addMember, updateMember, deleteMember } = useHousehold()
   const [newMemberName, setNewMemberName] = useState('')
   const [selectedColor, setSelectedColor] = useState(MEMBER_COLORS[0])
   const [isOpen, setIsOpen] = useState(false)
@@ -92,10 +97,37 @@ export function HouseholdMemberList() {
                   className="flex items-center justify-between p-2 rounded-md border"
                 >
                   <div className="flex items-center gap-3">
-                    <div
-                      className="w-4 h-4 rounded-full"
-                      style={{ backgroundColor: member.color }}
-                    />
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <button
+                          type="button"
+                          className="w-5 h-5 rounded-full cursor-pointer hover:ring-2 hover:ring-offset-1 hover:ring-primary transition-all"
+                          style={{ backgroundColor: member.color }}
+                          aria-label={`Change color for ${member.name}`}
+                        />
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-3">
+                        <div className="space-y-2">
+                          <p className="text-sm font-medium">Choose color</p>
+                          <div className="flex gap-1.5">
+                            {MEMBER_COLORS.map(color => (
+                              <button
+                                key={color}
+                                type="button"
+                                className={`w-6 h-6 rounded-full transition-all ${
+                                  member.color === color
+                                    ? 'ring-2 ring-offset-2 ring-primary'
+                                    : 'hover:scale-110'
+                                }`}
+                                style={{ backgroundColor: color }}
+                                onClick={() => updateMember(member.id, { color })}
+                                aria-label={`Select ${color} color`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                     <span>{member.name}</span>
                   </div>
                   <Button
