@@ -69,6 +69,12 @@ export function describeRecurrence(config: RecurrenceConfig): string {
 
   const weekdayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
   const ordinalNames = ['', '1st', '2nd', '3rd', '4th', 'last']
+  const pluralUnits: Record<RecurrenceFrequency, string> = {
+    daily: 'days',
+    weekly: 'weeks',
+    monthly: 'months',
+    yearly: 'years',
+  }
 
   let description = ''
 
@@ -77,7 +83,7 @@ export function describeRecurrence(config: RecurrenceConfig): string {
                   frequency === 'weekly' ? 'Weekly' :
                   frequency === 'monthly' ? 'Monthly' : 'Yearly'
   } else {
-    description = `Every ${interval} ${frequency.replace('ly', 's')}`
+    description = `Every ${interval} ${pluralUnits[frequency]}`
   }
 
   if (byWeekday && byWeekday.length > 0) {
@@ -121,13 +127,17 @@ export function parseRRuleToConfig(rruleString: string): RecurrenceConfig | null
         ? options.byweekday
         : [options.byweekday]
 
+      // Convert from rrule's Monday=0 indexing to Sunday=0 indexing
+      const rruleToSundayIndex = (rruleDay: number): number => (rruleDay + 1) % 7
+
       config.byWeekday = weekdays.map(wd => {
-        if (typeof wd === 'number') return wd
+        if (typeof wd === 'number') return rruleToSundayIndex(wd)
         if (typeof wd === 'string') {
           const dayMap: Record<string, number> = { SU: 0, MO: 1, TU: 2, WE: 3, TH: 4, FR: 5, SA: 6 }
           return dayMap[wd] ?? 0
         }
-        return (wd as Weekday).weekday
+        // rrule Weekday objects use Monday=0, convert to Sunday=0
+        return rruleToSundayIndex((wd as Weekday).weekday)
       })
 
       // Check for ordinal position

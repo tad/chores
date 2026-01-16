@@ -196,8 +196,7 @@ describe('describeRecurrence', () => {
 
   it('describes interval > 1 for days', () => {
     const config: RecurrenceConfig = { frequency: 'daily', interval: 2 }
-    // Note: The replace('ly', 's') logic produces 'dais' for 'daily'
-    expect(describeRecurrence(config)).toBe('Every 2 dais')
+    expect(describeRecurrence(config)).toBe('Every 2 days')
   })
 
   it('describes interval > 1 for weeks', () => {
@@ -297,23 +296,23 @@ describe('parseRRuleToConfig', () => {
   it('parses weekdays', () => {
     const rrule = 'RRULE:FREQ=WEEKLY;BYDAY=MO,WE,FR'
     const config = parseRRuleToConfig(rrule)
-    // rrule library uses 0=Monday, so MO=0, WE=2, FR=4
-    expect(config!.byWeekday).toEqual([0, 2, 4])
+    // Sunday=0 indexing: MO=1, WE=3, FR=5
+    expect(config!.byWeekday).toEqual([1, 3, 5])
   })
 
   it('parses ordinal weekday (2nd Tuesday)', () => {
     const rrule = 'RRULE:FREQ=MONTHLY;BYDAY=+2TU'
     const config = parseRRuleToConfig(rrule)
-    // rrule library uses 0=Monday, so TU=1
-    expect(config!.byWeekday).toContain(1)
+    // Sunday=0 indexing: TU=2
+    expect(config!.byWeekday).toContain(2)
     expect(config!.bySetPos).toBe(2)
   })
 
   it('parses last weekday (-1)', () => {
     const rrule = 'RRULE:FREQ=MONTHLY;BYDAY=-1FR'
     const config = parseRRuleToConfig(rrule)
-    // rrule library uses 0=Monday, so FR=4
-    expect(config!.byWeekday).toContain(4)
+    // Sunday=0 indexing: FR=5
+    expect(config!.byWeekday).toContain(5)
     expect(config!.bySetPos).toBe(-1)
   })
 
@@ -355,9 +354,8 @@ describe('parseRRuleToConfig', () => {
 
     expect(parsedConfig!.frequency).toBe(originalConfig.frequency)
     expect(parsedConfig!.interval).toBe(originalConfig.interval)
-    // Note: parseRRuleToConfig returns rrule library's weekday indices (0=Monday)
-    // while createRRule uses Sunday=0 indexing. This is a known asymmetry.
-    expect(parsedConfig!.byWeekday).toEqual([0, 2]) // MO=0, WE=2 in rrule lib
+    // parseRRuleToConfig now correctly converts to Sunday=0 indexing
+    expect(parsedConfig!.byWeekday).toEqual(originalConfig.byWeekday)
   })
 
   it('roundtrip with ordinal position', () => {
