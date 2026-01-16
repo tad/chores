@@ -4,6 +4,7 @@ import { useChores } from '@/contexts/ChoreContext'
 import type { ChoreInstance } from '@/types'
 import { Repeat, Pencil, CheckCircle } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { formatTime12Hour } from '@/lib/time'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { Button } from '@/components/ui/button'
 
@@ -53,12 +54,22 @@ export function ChoreCard({ instance, onEdit, compact = false }: ChoreCardProps)
       }}
     >
       {compact ? (
-        <span className="truncate">{chore.title}</span>
+        <span className="truncate flex items-center gap-1">
+          {chore.dueTime && (
+            <span className="text-muted-foreground font-normal">{formatTime12Hour(chore.dueTime)}</span>
+          )}
+          {chore.title}
+        </span>
       ) : (
         <div className="flex items-start justify-between gap-2">
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-1">
               <span className="font-medium truncate">{chore.title}</span>
+              {chore.dueTime && (
+                <span className="text-xs text-muted-foreground flex-shrink-0">
+                  {formatTime12Hour(chore.dueTime)}
+                </span>
+              )}
               {isRecurrenceInstance && (
                 <Repeat className="h-3 w-3 text-muted-foreground flex-shrink-0" />
               )}

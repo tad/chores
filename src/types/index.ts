@@ -13,6 +13,7 @@ export interface Chore {
   priority: Priority
   assigneeId: string | null
   dueDate: string // ISO date string
+  dueTime?: string // Optional time in "HH:mm" format (24-hour)
   recurrenceRule?: string // RRULE string for recurring chores
   completed: boolean
   completedDate?: string

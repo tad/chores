@@ -606,6 +606,143 @@ describe('ChoreContext', () => {
       expect(dates).toContain('2025-01-17')
       expect(dates).not.toContain('2025-01-16')
     })
+
+    it('sorts timed chores before untimed chores on same day', () => {
+      const { result } = renderHook(() => useChores(), { wrapper })
+
+      act(() => {
+        result.current.addChore({
+          title: 'Untimed',
+          priority: 'medium',
+          assigneeId: null,
+          dueDate: '2025-01-15T10:00:00Z',
+        })
+        result.current.addChore({
+          title: 'Timed',
+          priority: 'medium',
+          assigneeId: null,
+          dueDate: '2025-01-15T10:00:00Z',
+          dueTime: '14:30',
+        })
+      })
+
+      const instances = result.current.getChoresForRange(
+        new Date('2025-01-15T00:00:00Z'),
+        new Date('2025-01-15T23:59:59Z')
+      )
+
+      expect(instances[0].chore.title).toBe('Timed')
+      expect(instances[1].chore.title).toBe('Untimed')
+    })
+
+    it('sorts timed chores chronologically', () => {
+      const { result } = renderHook(() => useChores(), { wrapper })
+
+      act(() => {
+        result.current.addChore({
+          title: 'Later',
+          priority: 'medium',
+          assigneeId: null,
+          dueDate: '2025-01-15T10:00:00Z',
+          dueTime: '16:00',
+        })
+        result.current.addChore({
+          title: 'Earlier',
+          priority: 'medium',
+          assigneeId: null,
+          dueDate: '2025-01-15T10:00:00Z',
+          dueTime: '09:00',
+        })
+      })
+
+      const instances = result.current.getChoresForRange(
+        new Date('2025-01-15T00:00:00Z'),
+        new Date('2025-01-15T23:59:59Z')
+      )
+
+      expect(instances[0].chore.title).toBe('Earlier')
+      expect(instances[1].chore.title).toBe('Later')
+    })
+
+    it('sorts by date first, then by time', () => {
+      const { result } = renderHook(() => useChores(), { wrapper })
+
+      act(() => {
+        result.current.addChore({
+          title: 'Day 2 Morning',
+          priority: 'medium',
+          assigneeId: null,
+          dueDate: '2025-01-16T10:00:00Z',
+          dueTime: '09:00',
+        })
+        result.current.addChore({
+          title: 'Day 1 Evening',
+          priority: 'medium',
+          assigneeId: null,
+          dueDate: '2025-01-15T10:00:00Z',
+          dueTime: '18:00',
+        })
+        result.current.addChore({
+          title: 'Day 1 Morning',
+          priority: 'medium',
+          assigneeId: null,
+          dueDate: '2025-01-15T10:00:00Z',
+          dueTime: '09:00',
+        })
+      })
+
+      const instances = result.current.getChoresForRange(
+        new Date('2025-01-15T00:00:00Z'),
+        new Date('2025-01-16T23:59:59Z')
+      )
+
+      expect(instances[0].chore.title).toBe('Day 1 Morning')
+      expect(instances[1].chore.title).toBe('Day 1 Evening')
+      expect(instances[2].chore.title).toBe('Day 2 Morning')
+    })
+
+    it('maintains mixed sorting with timed and untimed chores across multiple days', () => {
+      const { result } = renderHook(() => useChores(), { wrapper })
+
+      act(() => {
+        result.current.addChore({
+          title: 'Day 2 Untimed',
+          priority: 'medium',
+          assigneeId: null,
+          dueDate: '2025-01-16T10:00:00Z',
+        })
+        result.current.addChore({
+          title: 'Day 1 Timed',
+          priority: 'medium',
+          assigneeId: null,
+          dueDate: '2025-01-15T10:00:00Z',
+          dueTime: '14:30',
+        })
+        result.current.addChore({
+          title: 'Day 1 Untimed',
+          priority: 'medium',
+          assigneeId: null,
+          dueDate: '2025-01-15T10:00:00Z',
+        })
+        result.current.addChore({
+          title: 'Day 2 Timed',
+          priority: 'medium',
+          assigneeId: null,
+          dueDate: '2025-01-16T10:00:00Z',
+          dueTime: '10:00',
+        })
+      })
+
+      const instances = result.current.getChoresForRange(
+        new Date('2025-01-15T00:00:00Z'),
+        new Date('2025-01-16T23:59:59Z')
+      )
+
+      expect(instances[0].chore.title).toBe('Day 1 Timed')
+      expect(instances[1].chore.title).toBe('Day 1 Untimed')
+      expect(instances[2].chore.title).toBe('Day 2 Timed')
+      expect(instances[3].chore.title).toBe('Day 2 Untimed')
+    })
   })
 
   describe('getChoresForDay', () => {

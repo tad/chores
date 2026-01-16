@@ -39,6 +39,7 @@ export function ChoreForm({ open, onOpenChange, editChore, initialDate }: ChoreF
   const [priority, setPriority] = useState<Priority>('medium')
   const [assigneeId, setAssigneeId] = useState<string>('')
   const [dueDate, setDueDate] = useState('')
+  const [dueTime, setDueTime] = useState<string>('')
   const [recurrence, setRecurrence] = useState<RecurrenceConfig | null>(null)
 
   // Reset form when dialog opens or editChore changes
@@ -50,6 +51,7 @@ export function ChoreForm({ open, onOpenChange, editChore, initialDate }: ChoreF
         setPriority(editChore.priority)
         setAssigneeId(editChore.assigneeId || '')
         setDueDate(editChore.dueDate.split('T')[0])
+        setDueTime(editChore.dueTime || '')
         setRecurrence(null) // TODO: parse existing recurrence
       } else {
         setTitle('')
@@ -57,6 +59,7 @@ export function ChoreForm({ open, onOpenChange, editChore, initialDate }: ChoreF
         setPriority('medium')
         setAssigneeId('')
         setDueDate(initialDate ? format(initialDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'))
+        setDueTime('')
         setRecurrence(null)
       }
     }
@@ -71,6 +74,7 @@ export function ChoreForm({ open, onOpenChange, editChore, initialDate }: ChoreF
       priority,
       assigneeId: assigneeId || null,
       dueDate: parse(dueDate, 'yyyy-MM-dd', new Date()).toISOString(),
+      dueTime: dueTime || undefined,
       recurrenceRule: recurrence
         ? createRRule(recurrence, parse(dueDate, 'yyyy-MM-dd', new Date()))
         : undefined,
@@ -133,6 +137,22 @@ export function ChoreForm({ open, onOpenChange, editChore, initialDate }: ChoreF
               onChange={e => setDueDate(e.target.value)}
               required
             />
+          </div>
+
+          {/* Due Time */}
+          <div className="space-y-2">
+            <Label htmlFor="dueTime">Time (optional)</Label>
+            <Input
+              id="dueTime"
+              type="time"
+              value={dueTime}
+              onChange={e => setDueTime(e.target.value)}
+            />
+            {!dueTime && (
+              <p className="text-xs text-muted-foreground">
+                Leave blank for anytime during the day
+              </p>
+            )}
           </div>
 
           {/* Priority */}

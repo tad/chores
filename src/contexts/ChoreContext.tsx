@@ -2,6 +2,7 @@ import { createContext, useContext, useCallback, useMemo, useEffect, type ReactN
 import { useLocalStorage } from '@/hooks/useLocalStorage'
 import type { Chore, ChoreInstance, CompletedChoreInstance } from '@/types'
 import { getRecurrenceInstances } from '@/lib/recurrence'
+import { timeToMinutes } from '@/lib/time'
 import {
   startOfDay,
   endOfDay,
@@ -9,6 +10,7 @@ import {
   endOfWeek,
   startOfMonth,
   endOfMonth,
+  isSameDay,
 } from 'date-fns'
 
 interface ChoreContextType {
@@ -164,7 +166,30 @@ export function ChoreProvider({ children }: { children: ReactNode }) {
         }
       })
 
-      return instances.sort((a, b) => a.date.getTime() - b.date.getTime())
+      return instances.sort((a, b) => {
+        // First sort by date
+        const dateComparison = a.date.getTime() - b.date.getTime()
+
+        // If different days, sort by date
+        if (!isSameDay(a.date, b.date)) {
+          return dateComparison
+        }
+
+        // Same day: timed chores come before untimed
+        const aHasTime = !!a.chore.dueTime
+        const bHasTime = !!b.chore.dueTime
+
+        if (aHasTime && !bHasTime) return -1
+        if (!aHasTime && bHasTime) return 1
+
+        // Both have times: sort chronologically
+        if (aHasTime && bHasTime) {
+          return timeToMinutes(a.chore.dueTime!) - timeToMinutes(b.chore.dueTime!)
+        }
+
+        // Both untimed: keep original date order
+        return dateComparison
+      })
     },
     [chores]
   )

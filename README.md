@@ -5,6 +5,7 @@ A simple, browser-based household chore management app. Keep track of tasks, ass
 ## Features
 
 - **Calendar Views** — View your chores by day, week, or month
+- **Optional Time Assignment** — Add specific times to chores (e.g., "2:30 PM") or leave them for anytime during the day. Timed chores are sorted before untimed chores.
 - **Recurring Tasks** — Set chores to repeat daily, weekly, monthly, or yearly with flexible scheduling options (e.g., "every 2 weeks on Monday and Thursday" or "the last Friday of each month")
 - **Household Members** — Add family members and assign chores to them, each with their own color for easy identification
 - **Priority Levels** — Mark chores as low, medium, or high priority
