@@ -67,6 +67,12 @@ All data is stored in your browser's localStorage. This means:
 
 ## Changelog
 
+### 1.0.7
+- Added optional time support for chores with 12-hour format display (e.g., "2:30 PM")
+- Timed chores are now sorted before untimed chores on the same day
+- Times display in both compact and full calendar views
+- Added automatic 12-hour to 24-hour format conversion
+
 ### 1.0.6
 - Fixed recurring task completion bug where marking one instance as complete would hide all future instances
 - Added individual instance tracking for recurring chores with completedDates array
