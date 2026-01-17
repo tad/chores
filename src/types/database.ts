@@ -54,7 +54,7 @@ export type Database = {
       household_memberships: {
         Row: {
           id: string
-          user_id: string
+          user_id: string | null
           household_id: string
           role: 'owner' | 'member'
           color: string
@@ -63,7 +63,7 @@ export type Database = {
         }
         Insert: {
           id?: string
-          user_id: string
+          user_id?: string | null
           household_id: string
           role?: 'owner' | 'member'
           color: string

@@ -29,9 +29,10 @@ interface HouseholdContextType {
 
   // Household operations
   createHousehold: (name: string, displayName: string) => Promise<{ household: Household | null; error: Error | null }>
-  joinHousehold: (inviteCode: string, displayName: string) => Promise<{ error: Error | null }>
+  joinHousehold: (inviteCode: string, displayName: string, claimMemberId?: string) => Promise<{ error: Error | null }>
   leaveHousehold: (householdId: string) => Promise<void>
   refreshHousehold: () => Promise<void>
+  getUnclaimedMembers: (householdId: string) => Promise<HouseholdMember[]>
 
   // Loading state
   loading: boolean
@@ -177,7 +178,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
       id: m.id,
       name: m.display_name,
       color: m.color,
-      userId: m.user_id,
+      userId: m.user_id ?? undefined,
       role: m.role,
     }))
   }, [allMembers])
@@ -235,7 +236,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
   )
 
   const joinHousehold = useCallback(
-    async (inviteCode: string, displayName: string) => {
+    async (inviteCode: string, displayName: string, claimMemberId?: string) => {
       if (!user) {
         return { error: new Error('Not authenticated') }
       }
@@ -259,27 +260,41 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
         return { error: new Error('You are already a member of this household') }
       }
 
-      // Get existing member colors to assign a new one
-      const { data: existingMembers } = await supabase
-        .from('household_memberships')
-        .select('color')
-        .eq('household_id', household.id)
+      if (claimMemberId) {
+        // Claim existing virtual member
+        const { error: claimError } = await supabase
+          .from('household_memberships')
+          .update({ user_id: user.id })
+          .eq('id', claimMemberId)
+          .eq('household_id', household.id)
+          .is('user_id', null) // Safety: only claim unclaimed members
 
-      const usedColors = existingMembers?.map((m) => m.color) || []
+        if (claimError) {
+          return { error: new Error(claimError.message) }
+        }
+      } else {
+        // Get existing member colors to assign a new one
+        const { data: existingMembers } = await supabase
+          .from('household_memberships')
+          .select('color')
+          .eq('household_id', household.id)
 
-      // Create membership
-      const { error: membershipError } = await supabase
-        .from('household_memberships')
-        .insert({
-          user_id: user.id,
-          household_id: household.id,
-          role: 'member',
-          color: getNextColor(usedColors),
-          display_name: displayName,
-        })
+        const usedColors = existingMembers?.map((m) => m.color) || []
 
-      if (membershipError) {
-        return { error: new Error(membershipError.message) }
+        // Create new membership
+        const { error: membershipError } = await supabase
+          .from('household_memberships')
+          .insert({
+            user_id: user.id,
+            household_id: household.id,
+            role: 'member',
+            color: getNextColor(usedColors),
+            display_name: displayName,
+          })
+
+        if (membershipError) {
+          return { error: new Error(membershipError.message) }
+        }
       }
 
       // Refresh and select joined household
@@ -309,12 +324,12 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
   // Legacy methods for backwards compatibility with existing UI
   const addMember = useCallback(
     async (name: string, color?: string) => {
-      if (!user || !currentHousehold) return
+      if (!currentHousehold) return
 
       const usedColors = members.map((m) => m.color)
 
+      // Create virtual member (user_id is omitted = null)
       await supabase.from('household_memberships').insert({
-        user_id: user.id, // Note: This creates a membership for current user
         household_id: currentHousehold.id,
         role: 'member',
         color: color || getNextColor(usedColors),
@@ -323,7 +338,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
 
       await fetchMembers()
     },
-    [user, currentHousehold, members, fetchMembers]
+    [currentHousehold, members, fetchMembers]
   )
 
   const updateMember = useCallback(
@@ -357,6 +372,24 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
     [members]
   )
 
+  const getUnclaimedMembers = useCallback(
+    async (householdId: string): Promise<HouseholdMember[]> => {
+      const { data } = await supabase
+        .from('household_memberships')
+        .select('*')
+        .eq('household_id', householdId)
+        .is('user_id', null)
+
+      return data?.map(m => ({
+        id: m.id,
+        name: m.display_name,
+        color: m.color,
+        role: m.role,
+      })) || []
+    },
+    []
+  )
+
   const refreshHousehold = useCallback(async () => {
     await fetchHouseholds()
     await fetchMembers()
@@ -377,6 +410,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
       joinHousehold,
       leaveHousehold,
       refreshHousehold,
+      getUnclaimedMembers,
       loading,
     }),
     [
@@ -392,6 +426,7 @@ export function HouseholdProvider({ children }: { children: ReactNode }) {
       joinHousehold,
       leaveHousehold,
       refreshHousehold,
+      getUnclaimedMembers,
       loading,
     ]
   )
