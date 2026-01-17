@@ -12,7 +12,7 @@ import { useAuth } from '@/contexts/AuthContext'
 import { useHousehold } from '@/contexts/HouseholdContext'
 import type { Chore, ChoreInstance, CompletedChoreInstance, DbChore, ChoreCompletion } from '@/types'
 import { getRecurrenceInstances } from '@/lib/recurrence'
-import { timeToMinutes } from '@/lib/time'
+import { timeToMinutes, parseDateAsLocal } from '@/lib/time'
 import {
   startOfDay,
   endOfDay,
@@ -282,7 +282,7 @@ export function ChoreProvider({ children }: { children: ReactNode }) {
           // Non-recurring chore - skip if completed
           if (chore.completed) return
 
-          const choreDate = new Date(chore.dueDate)
+          const choreDate = parseDateAsLocal(chore.dueDate)
           if (choreDate >= start && choreDate <= end) {
             instances.push({
               chore,

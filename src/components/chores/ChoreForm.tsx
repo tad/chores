@@ -22,7 +22,7 @@ import {
 import { RecurrenceSelect } from './RecurrenceSelect'
 import { createRRule, parseRRuleToConfig } from '@/lib/recurrence'
 import type { Chore, Priority, RecurrenceConfig } from '@/types'
-import { format, parse } from 'date-fns'
+import { format } from 'date-fns'
 
 interface ChoreFormProps {
   open: boolean
@@ -66,38 +66,53 @@ export function ChoreForm({ open, onOpenChange, editChore, initialDate }: ChoreF
     return timeStr
   }
 
+  // Normalize time to HH:mm format (handles HH:mm:ss from some browsers)
+  const normalizeTime = (timeStr: string): string => {
+    const trimmed = timeStr.trim()
+    // Handle HH:mm:ss format - strip seconds
+    const timeWithSeconds = /^(\d{1,2}:\d{2}):\d{2}$/.exec(trimmed)
+    if (timeWithSeconds) {
+      return timeWithSeconds[1]
+    }
+    return trimmed
+  }
+
   const handleTimeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value
-    console.log('handleTimeChange called with:', value)
-    // Auto-convert 12-hour format to 24-hour format
-    const converted = convertTo24Hour(value)
-    console.log('Converted to:', converted)
+    // Normalize and convert time format
+    const normalized = normalizeTime(value)
+    const converted = convertTo24Hour(normalized)
     setDueTime(converted)
+  }
+
+  // Extract date part from either YYYY-MM-DD or ISO format
+  const extractDatePart = (dateStr: string): string => {
+    // Handle ISO format with T separator
+    if (dateStr.includes('T')) {
+      return dateStr.split('T')[0]
+    }
+    // Already YYYY-MM-DD format
+    return dateStr
   }
 
   // Reset form when dialog opens or editChore changes
   useEffect(() => {
-    console.log('Form reset effect triggered, open:', open)
     if (open) {
       if (editChore) {
-        console.log('Editing chore:', editChore)
         setTitle(editChore.title)
         setDescription(editChore.description || '')
         setPriority(editChore.priority)
         setAssigneeId(editChore.assigneeId || '')
-        setDueDate(editChore.dueDate.split('T')[0])
+        setDueDate(extractDatePart(editChore.dueDate))
         setDueTime(editChore.dueTime || '')
-        console.log('Set dueTime to:', editChore.dueTime || '(empty)')
         setRecurrence(editChore.recurrenceRule ? parseRRuleToConfig(editChore.recurrenceRule) : null)
       } else {
-        console.log('Creating new chore')
         setTitle('')
         setDescription('')
         setPriority('medium')
         setAssigneeId('')
         setDueDate(initialDate ? format(initialDate, 'yyyy-MM-dd') : format(new Date(), 'yyyy-MM-dd'))
         setDueTime('')
-        console.log('Set dueTime to empty string')
         setRecurrence(null)
       }
     }
@@ -109,27 +124,33 @@ export function ChoreForm({ open, onOpenChange, editChore, initialDate }: ChoreF
     // Validate and sanitize time input
     let sanitizedTime: string | undefined = undefined
     if (dueTime) {
-      // Remove any whitespace and ensure it's in HH:mm format
-      const trimmedTime = dueTime.trim()
+      // Normalize and validate time
+      const normalized = normalizeTime(dueTime)
       // Check if it matches HH:mm format (24-hour)
-      if (/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(trimmedTime)) {
-        sanitizedTime = trimmedTime
+      if (/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/.test(normalized)) {
+        // Ensure 2-digit hour format for consistency
+        const [hours, minutes] = normalized.split(':')
+        sanitizedTime = `${hours.padStart(2, '0')}:${minutes}`
       } else {
-        console.error('Invalid time format:', dueTime)
         alert('Please enter a valid time in HH:mm format (e.g., 14:30 for 2:30 PM)')
         return
       }
     }
+
+    // Create a Date at local midnight for the selected date
+    // This avoids timezone issues when storing/comparing dates
+    const [year, month, day] = dueDate.split('-').map(Number)
+    const localDate = new Date(year, month - 1, day)
 
     const choreData = {
       title: title.trim(),
       description: description.trim() || undefined,
       priority,
       assigneeId: assigneeId || null,
-      dueDate: parse(dueDate, 'yyyy-MM-dd', new Date()).toISOString(),
+      dueDate: dueDate, // Store as YYYY-MM-DD string to avoid timezone issues
       dueTime: sanitizedTime,
       recurrenceRule: recurrence
-        ? createRRule(recurrence, parse(dueDate, 'yyyy-MM-dd', new Date()))
+        ? createRRule(recurrence, localDate)
         : undefined,
     }
 
@@ -207,15 +228,12 @@ export function ChoreForm({ open, onOpenChange, editChore, initialDate }: ChoreF
               value={dueTime}
               onChange={handleTimeChange}
               onBlur={e => {
-                // Convert on blur in case user typed 12-hour format
-                const converted = convertTo24Hour(e.target.value)
-                if (converted !== e.target.value) {
+                // Normalize and convert on blur
+                const normalized = normalizeTime(e.target.value)
+                const converted = convertTo24Hour(normalized)
+                if (converted !== dueTime) {
                   setDueTime(converted)
                 }
-              }}
-              onFocus={() => {
-                // Debug: log current value when focused
-                console.log('Time input focused, current value:', dueTime)
               }}
               autoComplete="off"
               step="60"
