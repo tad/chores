@@ -67,6 +67,11 @@ All data is stored in your browser's localStorage. This means:
 
 ## Changelog
 
+### 1.0.8
+- Fixed bug where recurrence settings were hidden when editing existing chores
+- Existing recurrence patterns now populate correctly when editing a chore
+- Users can now view and modify recurrence settings for existing tasks
+
 ### 1.0.7
 - Added optional time support for chores with 12-hour format display (e.g., "2:30 PM")
 - Timed chores are now sorted before untimed chores on the same day

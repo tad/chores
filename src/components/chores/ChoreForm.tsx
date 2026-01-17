@@ -19,7 +19,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { RecurrenceSelect } from './RecurrenceSelect'
-import { createRRule } from '@/lib/recurrence'
+import { createRRule, parseRRuleToConfig } from '@/lib/recurrence'
 import type { Chore, Priority, RecurrenceConfig } from '@/types'
 import { format, parse } from 'date-fns'
 
@@ -86,7 +86,7 @@ export function ChoreForm({ open, onOpenChange, editChore, initialDate }: ChoreF
         setDueDate(editChore.dueDate.split('T')[0])
         setDueTime(editChore.dueTime || '')
         console.log('Set dueTime to:', editChore.dueTime || '(empty)')
-        setRecurrence(null) // TODO: parse existing recurrence
+        setRecurrence(editChore.recurrenceRule ? parseRRuleToConfig(editChore.recurrenceRule) : null)
       } else {
         console.log('Creating new chore')
         setTitle('')
@@ -262,9 +262,7 @@ export function ChoreForm({ open, onOpenChange, editChore, initialDate }: ChoreF
           </div>
 
           {/* Recurrence */}
-          {!editChore && (
-            <RecurrenceSelect value={recurrence} onChange={setRecurrence} />
-          )}
+          <RecurrenceSelect value={recurrence} onChange={setRecurrence} />
 
           <DialogFooter className="gap-2">
             {editChore && (
