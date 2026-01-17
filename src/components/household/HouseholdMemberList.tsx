@@ -132,7 +132,14 @@ export function HouseholdMemberList() {
                         </div>
                       </PopoverContent>
                     </Popover>
-                    <span>{member.name}</span>
+                    <div className="flex items-center gap-2">
+                      <span>{member.name}</span>
+                      {!member.userId && (
+                        <span className="text-xs text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                          not linked
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <Button
                     variant="ghost"

@@ -9,7 +9,7 @@ A household chore management app with multi-user authentication. Keep track of t
 - **Calendar Views** — View your chores by day, week, or month
 - **Optional Time Assignment** — Add specific times to chores (e.g., "2:30 PM") or leave them for anytime during the day. Timed chores are sorted before untimed chores.
 - **Recurring Tasks** — Set chores to repeat daily, weekly, monthly, or yearly with flexible scheduling options (e.g., "every 2 weeks on Monday and Thursday" or "the last Friday of each month")
-- **Household Members** — Add family members and assign chores to them, each with their own color for easy identification
+- **Household Members** — Add family members (with or without accounts) and assign chores to them, each with their own color for easy identification. Virtual members can be claimed later when users join.
 - **Priority Levels** — Mark chores as low, medium, or high priority
 - **Invite System** — Share your household's invite code with family members to let them join
 
@@ -72,7 +72,11 @@ npm run preview
 ### Supabase Configuration
 
 1. Create a new Supabase project
-2. Run the SQL migration in `supabase/migrations/001_initial_schema.sql`
+2. Run the SQL migrations in order:
+   - `supabase/migrations/001_initial_schema.sql`
+   - `supabase/migrations/002_fix_rls_recursion.sql`
+   - `supabase/migrations/003_virtual_members.sql`
+   - `supabase/migrations/004_fix_virtual_members_rls.sql`
 3. Copy `.env.example` to `.env` and fill in your Supabase credentials:
    ```
    VITE_SUPABASE_URL=https://your-project.supabase.co
@@ -88,6 +92,13 @@ All data is stored in Supabase with row-level security:
 - Existing localStorage data can be migrated on first login
 
 ## Changelog
+
+### 2.2.0
+- **Virtual household members** — Add household members without requiring them to have accounts
+- **Member claiming** — Users can claim existing virtual members when joining a household
+- Fixed 409 Conflict error when adding new household members
+- Added two-step join flow with option to claim existing member or join as new
+- Visual indicator shows "not linked" badge for virtual members
 
 ### 2.1.1
 - Fixed bug where chores without a time would appear on the previous day due to timezone handling
