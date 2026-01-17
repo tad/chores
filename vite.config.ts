@@ -3,8 +3,8 @@ import { defineConfig } from 'vitest/config'
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
-export default defineConfig({
-  base: '/chores/',
+export default defineConfig(({ mode }) => ({
+  base: mode === 'production' ? '/chores/' : '/',
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
@@ -28,4 +28,4 @@ export default defineConfig({
       ],
     },
   },
-})
+}))
