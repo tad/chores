@@ -89,7 +89,7 @@ All data is stored in Supabase with row-level security:
 
 ## Changelog
 
-### 2.0.0
+### 2.1.0
 - **Multi-user authentication** — Sign up with email/password to access your chores from any device
 - **Household system** — Create or join households with invite codes
 - **Real-time sync** — All changes sync instantly across devices via Supabase
