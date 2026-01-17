@@ -1,15 +1,17 @@
 # Home Chores
 
-A simple, browser-based household chore management app. Keep track of tasks, assign them to family members, and set up recurring schedules—all without needing an account or server.
+A household chore management app with multi-user authentication. Keep track of tasks, assign them to family members, and set up recurring schedules—with real-time sync across all your devices.
 
 ## Features
 
+- **Multi-User Authentication** — Sign up with email/password, create or join households, and sync chores across all your devices
+- **Real-Time Sync** — Changes made by any household member appear instantly on all devices
 - **Calendar Views** — View your chores by day, week, or month
 - **Optional Time Assignment** — Add specific times to chores (e.g., "2:30 PM") or leave them for anytime during the day. Timed chores are sorted before untimed chores.
 - **Recurring Tasks** — Set chores to repeat daily, weekly, monthly, or yearly with flexible scheduling options (e.g., "every 2 weeks on Monday and Thursday" or "the last Friday of each month")
 - **Household Members** — Add family members and assign chores to them, each with their own color for easy identification
 - **Priority Levels** — Mark chores as low, medium, or high priority
-- **No Account Required** — All data is stored locally in your browser
+- **Invite System** — Share your household's invite code with family members to let them join
 
 ## Getting Started
 
@@ -56,16 +58,44 @@ npm run preview
 - Radix UI
 - date-fns
 - rrule (iCalendar RRULE standard)
+- Supabase (Authentication & Database)
+- React Router
+
+## Setup
+
+### Prerequisites
+
+- Node.js 18+
+- npm
+- Supabase project (free tier available at https://supabase.com)
+
+### Supabase Configuration
+
+1. Create a new Supabase project
+2. Run the SQL migration in `supabase/migrations/001_initial_schema.sql`
+3. Copy `.env.example` to `.env` and fill in your Supabase credentials:
+   ```
+   VITE_SUPABASE_URL=https://your-project.supabase.co
+   VITE_SUPABASE_ANON_KEY=your-anon-key
+   ```
 
 ## Data Storage
 
-All data is stored in your browser's localStorage. This means:
-- Your data stays on your device
-- No account or login required
-- Data persists between sessions
-- Clearing browser data will remove your chores
+All data is stored in Supabase with row-level security:
+- Your data syncs across all your devices
+- Real-time updates when household members make changes
+- Secure authentication with email/password
+- Existing localStorage data can be migrated on first login
 
 ## Changelog
+
+### 2.0.0
+- **Multi-user authentication** — Sign up with email/password to access your chores from any device
+- **Household system** — Create or join households with invite codes
+- **Real-time sync** — All changes sync instantly across devices via Supabase
+- **Migration wizard** — Migrate existing localStorage data to your new account
+- **Toast notifications** — User-friendly success/error messages
+- **Loading states** — Visual feedback during data operations
 
 ### 1.0.9
 - Added confirmation dialog when deleting a chore to prevent accidental deletions

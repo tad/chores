@@ -1,6 +1,16 @@
-import { createContext, useContext, useCallback, useMemo, useEffect, type ReactNode } from 'react'
-import { useLocalStorage } from '@/hooks/useLocalStorage'
-import type { Chore, ChoreInstance, CompletedChoreInstance } from '@/types'
+import {
+  createContext,
+  useContext,
+  useCallback,
+  useMemo,
+  useEffect,
+  useState,
+  type ReactNode,
+} from 'react'
+import { supabase } from '@/lib/supabase'
+import { useAuth } from '@/contexts/AuthContext'
+import { useHousehold } from '@/contexts/HouseholdContext'
+import type { Chore, ChoreInstance, CompletedChoreInstance, DbChore, ChoreCompletion } from '@/types'
 import { getRecurrenceInstances } from '@/lib/recurrence'
 import { timeToMinutes } from '@/lib/time'
 import {
@@ -15,10 +25,11 @@ import {
 
 interface ChoreContextType {
   chores: Chore[]
-  addChore: (chore: Omit<Chore, 'id' | 'createdAt' | 'completed'>) => void
-  updateChore: (id: string, updates: Partial<Chore>) => void
-  deleteChore: (id: string) => void
-  completeChore: (id: string, date: Date) => void
+  loading: boolean
+  addChore: (chore: Omit<Chore, 'id' | 'createdAt' | 'completed'>) => Promise<void>
+  updateChore: (id: string, updates: Partial<Chore>) => Promise<void>
+  deleteChore: (id: string) => Promise<void>
+  completeChore: (id: string, date: Date) => Promise<void>
   getChoresForRange: (start: Date, end: Date) => ChoreInstance[]
   getChoresForDay: (date: Date) => ChoreInstance[]
   getChoresForWeek: (date: Date) => ChoreInstance[]
@@ -28,107 +39,221 @@ interface ChoreContextType {
 
 const ChoreContext = createContext<ChoreContextType | null>(null)
 
-function generateId(): string {
-  return `${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+// Convert database chore to app chore format
+function dbChoreToChore(dbChore: DbChore, completions: ChoreCompletion[]): Chore {
+  return {
+    id: dbChore.id,
+    title: dbChore.title,
+    description: dbChore.description || undefined,
+    priority: dbChore.priority,
+    assigneeId: dbChore.assignee_id,
+    dueDate: dbChore.due_date,
+    dueTime: dbChore.due_time || undefined,
+    recurrenceRule: dbChore.recurrence_rule || undefined,
+    completed: dbChore.completed,
+    completedDate: dbChore.completed_date || undefined,
+    completedDates: completions.map((c) => c.completed_at),
+    createdAt: dbChore.created_at,
+  }
 }
 
 export function ChoreProvider({ children }: { children: ReactNode }) {
-  const [chores, setChores] = useLocalStorage<Chore[]>('chores', [])
+  const { user } = useAuth()
+  const { currentHousehold } = useHousehold()
+  const [dbChores, setDbChores] = useState<DbChore[]>([])
+  const [completions, setCompletions] = useState<ChoreCompletion[]>([])
+  const [loading, setLoading] = useState(true)
 
-  // Migration: fix any recurring chores incorrectly marked as completed
-  useEffect(() => {
-    const hasInvalidRecurringChores = chores.some(
-      chore => chore.recurrenceRule && chore.completed
-    )
-
-    if (hasInvalidRecurringChores) {
-      setChores(prev =>
-        prev.map(chore => {
-          if (chore.recurrenceRule && chore.completed) {
-            // Reset invalid state - completed flag should not be used for recurring chores
-            return {
-              ...chore,
-              completed: false,
-              // Migrate the single completedDate to completedDates array
-              completedDates: chore.completedDate ? [chore.completedDate] : undefined,
-              completedDate: undefined,
-            }
-          }
-          return chore
-        })
-      )
+  // Fetch chores for current household
+  const fetchChores = useCallback(async () => {
+    if (!currentHousehold) {
+      setDbChores([])
+      setCompletions([])
+      setLoading(false)
+      return
     }
-  }, []) // Run once on mount
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+
+    setLoading(true)
+
+    const { data: choreData, error: choreError } = await supabase
+      .from('chores')
+      .select('*')
+      .eq('household_id', currentHousehold.id)
+
+    if (choreError) {
+      console.error('Error fetching chores:', choreError)
+      setLoading(false)
+      return
+    }
+
+    setDbChores(choreData || [])
+
+    // Fetch completions for all chores
+    if (choreData && choreData.length > 0) {
+      const choreIds = choreData.map((c) => c.id)
+      const { data: completionData, error: completionError } = await supabase
+        .from('chore_completions')
+        .select('*')
+        .in('chore_id', choreIds)
+
+      if (completionError) {
+        console.error('Error fetching completions:', completionError)
+      } else {
+        setCompletions(completionData || [])
+      }
+    } else {
+      setCompletions([])
+    }
+
+    setLoading(false)
+  }, [currentHousehold])
+
+  // Initialize and refresh on household change
+  useEffect(() => {
+    fetchChores()
+  }, [currentHousehold?.id])
+
+  // Subscribe to real-time changes
+  useEffect(() => {
+    if (!currentHousehold) return
+
+    const choreChannel = supabase
+      .channel(`chores:${currentHousehold.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'chores',
+          filter: `household_id=eq.${currentHousehold.id}`,
+        },
+        () => {
+          fetchChores()
+        }
+      )
+      .subscribe()
+
+    const completionChannel = supabase
+      .channel(`chore_completions:${currentHousehold.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'chore_completions',
+        },
+        () => {
+          fetchChores()
+        }
+      )
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(choreChannel)
+      supabase.removeChannel(completionChannel)
+    }
+  }, [currentHousehold?.id, fetchChores])
+
+  // Convert DB chores to app chores with completions
+  const chores: Chore[] = useMemo(() => {
+    return dbChores.map((dbChore) => {
+      const choreCompletions = completions.filter((c) => c.chore_id === dbChore.id)
+      return dbChoreToChore(dbChore, choreCompletions)
+    })
+  }, [dbChores, completions])
 
   const addChore = useCallback(
-    (choreData: Omit<Chore, 'id' | 'createdAt' | 'completed'>) => {
-      const newChore: Chore = {
-        ...choreData,
-        id: generateId(),
-        createdAt: new Date().toISOString(),
+    async (choreData: Omit<Chore, 'id' | 'createdAt' | 'completed'>) => {
+      if (!user || !currentHousehold) return
+
+      await supabase.from('chores').insert({
+        household_id: currentHousehold.id,
+        title: choreData.title,
+        description: choreData.description || null,
+        priority: choreData.priority,
+        assignee_id: choreData.assigneeId || null,
+        due_date: choreData.dueDate,
+        due_time: choreData.dueTime || null,
+        recurrence_rule: choreData.recurrenceRule || null,
         completed: false,
-      }
-      setChores(prev => [...prev, newChore])
+        created_by: user.id,
+      })
+
+      await fetchChores()
     },
-    [setChores]
+    [user, currentHousehold, fetchChores]
   )
 
   const updateChore = useCallback(
-    (id: string, updates: Partial<Chore>) => {
-      setChores(prev =>
-        prev.map(chore => (chore.id === id ? { ...chore, ...updates } : chore))
-      )
+    async (id: string, updates: Partial<Chore>) => {
+      const dbUpdates: Record<string, unknown> = {}
+
+      if (updates.title !== undefined) dbUpdates.title = updates.title
+      if (updates.description !== undefined) dbUpdates.description = updates.description || null
+      if (updates.priority !== undefined) dbUpdates.priority = updates.priority
+      if (updates.assigneeId !== undefined) dbUpdates.assignee_id = updates.assigneeId || null
+      if (updates.dueDate !== undefined) dbUpdates.due_date = updates.dueDate
+      if (updates.dueTime !== undefined) dbUpdates.due_time = updates.dueTime || null
+      if (updates.recurrenceRule !== undefined) dbUpdates.recurrence_rule = updates.recurrenceRule || null
+      if (updates.completed !== undefined) dbUpdates.completed = updates.completed
+      if (updates.completedDate !== undefined) dbUpdates.completed_date = updates.completedDate || null
+
+      await supabase.from('chores').update(dbUpdates).eq('id', id)
+
+      await fetchChores()
     },
-    [setChores]
+    [fetchChores]
   )
 
   const deleteChore = useCallback(
-    (id: string) => {
-      setChores(prev => prev.filter(chore => chore.id !== id))
+    async (id: string) => {
+      await supabase.from('chores').delete().eq('id', id)
+      await fetchChores()
     },
-    [setChores]
+    [fetchChores]
   )
 
   const completeChore = useCallback(
-    (id: string, date: Date) => {
-      setChores(prev =>
-        prev.map(chore => {
-          if (chore.id !== id) return chore
+    async (id: string, date: Date) => {
+      if (!user) return
 
-          // For recurring chores, add date to completedDates array
-          if (chore.recurrenceRule) {
-            const dateStr = date.toISOString().split('T')[0] // Use date part only for comparison
-            const existingDates = chore.completedDates || []
+      const chore = chores.find((c) => c.id === id)
+      if (!chore) return
 
-            // Avoid duplicates
-            if (existingDates.some(d => d.startsWith(dateStr))) {
-              return chore
-            }
+      // For recurring chores, add a completion record
+      if (chore.recurrenceRule) {
+        const dateStr = date.toISOString().split('T')[0]
 
-            return {
-              ...chore,
-              completedDates: [...existingDates, date.toISOString()],
-            }
-          }
+        // Check if already completed for this date
+        const existingCompletion = completions.find(
+          (c) => c.chore_id === id && c.instance_date === dateStr
+        )
 
-          // For non-recurring chores, mark as completed (existing behavior)
-          return {
-            ...chore,
-            completed: true,
-            completedDate: date.toISOString(),
-          }
+        if (existingCompletion) return
+
+        await supabase.from('chore_completions').insert({
+          chore_id: id,
+          instance_date: dateStr,
+          completed_by: user.id,
         })
-      )
+      } else {
+        // For non-recurring chores, mark as completed
+        await supabase.from('chores').update({
+          completed: true,
+          completed_date: date.toISOString(),
+        }).eq('id', id)
+      }
+
+      await fetchChores()
     },
-    [setChores]
+    [user, chores, completions, fetchChores]
   )
 
   const getChoresForRange = useCallback(
     (start: Date, end: Date): ChoreInstance[] => {
       const instances: ChoreInstance[] = []
 
-      chores.forEach(chore => {
+      chores.forEach((chore) => {
         if (chore.recurrenceRule) {
           // Get all instances within the range
           const recurrenceInstances = getRecurrenceInstances(
@@ -136,11 +261,13 @@ export function ChoreProvider({ children }: { children: ReactNode }) {
             start,
             end
           )
-          recurrenceInstances.forEach(date => {
+          recurrenceInstances.forEach((date) => {
             // Check if this specific date is completed
             const dateStr = date.toISOString().split('T')[0]
             const isCompleted = chore.completedDates?.some(
-              completedDate => completedDate.startsWith(dateStr)
+              (completedDate) => completedDate.startsWith(dateStr)
+            ) || completions.some(
+              (c) => c.chore_id === chore.id && c.instance_date === dateStr
             )
 
             if (!isCompleted) {
@@ -152,7 +279,7 @@ export function ChoreProvider({ children }: { children: ReactNode }) {
             }
           })
         } else {
-          // Non-recurring chore - skip if completed (existing behavior)
+          // Non-recurring chore - skip if completed
           if (chore.completed) return
 
           const choreDate = new Date(chore.dueDate)
@@ -191,7 +318,7 @@ export function ChoreProvider({ children }: { children: ReactNode }) {
         return dateComparison
       })
     },
-    [chores]
+    [chores, completions]
   )
 
   const getChoresForDay = useCallback(
@@ -221,14 +348,15 @@ export function ChoreProvider({ children }: { children: ReactNode }) {
   const getCompletedChores = useCallback((): CompletedChoreInstance[] => {
     const completedInstances: CompletedChoreInstance[] = []
 
-    chores.forEach(chore => {
-      if (chore.recurrenceRule && chore.completedDates) {
+    chores.forEach((chore) => {
+      if (chore.recurrenceRule) {
         // Add each completed instance of recurring chores
-        chore.completedDates.forEach(completedDate => {
+        const choreCompletions = completions.filter((c) => c.chore_id === chore.id)
+        choreCompletions.forEach((completion) => {
           completedInstances.push({
             chore,
-            completedDate,
-            instanceDate: completedDate,
+            completedDate: completion.completed_at,
+            instanceDate: completion.instance_date,
           })
         })
       } else if (chore.completed && chore.completedDate) {
@@ -247,11 +375,12 @@ export function ChoreProvider({ children }: { children: ReactNode }) {
       const dateB = new Date(b.completedDate).getTime()
       return dateB - dateA
     })
-  }, [chores])
+  }, [chores, completions])
 
   const value = useMemo(
     () => ({
       chores,
+      loading,
       addChore,
       updateChore,
       deleteChore,
@@ -264,6 +393,7 @@ export function ChoreProvider({ children }: { children: ReactNode }) {
     }),
     [
       chores,
+      loading,
       addChore,
       updateChore,
       deleteChore,

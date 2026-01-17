@@ -1,7 +1,27 @@
+// Re-export database types
+export type {
+  Profile,
+  Household,
+  HouseholdMembership,
+  DbChore,
+  ChoreCompletion,
+} from './database'
+
+// User type for auth context
+export interface User {
+  id: string
+  email: string
+  displayName?: string
+  avatarUrl?: string
+}
+
+// HouseholdMember now maps to HouseholdMembership
 export interface HouseholdMember {
   id: string
   name: string
   color: string
+  userId?: string // Links to auth user when using Supabase
+  role?: 'owner' | 'member'
 }
 
 export type Priority = 'low' | 'medium' | 'high'
