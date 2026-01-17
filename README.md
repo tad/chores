@@ -89,6 +89,11 @@ All data is stored in Supabase with row-level security:
 
 ## Changelog
 
+### 2.1.1
+- Fixed bug where chores without a time would appear on the previous day due to timezone handling
+- Fixed "Invalid time value" error when viewing chores with time
+- Added defensive handling for time parsing to prevent crashes from malformed data
+
 ### 2.1.0
 - **Multi-user authentication** — Sign up with email/password to access your chores from any device
 - **Household system** — Create or join households with invite codes
