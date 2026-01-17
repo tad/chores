@@ -469,4 +469,163 @@ describe('ChoreForm', () => {
       })
     })
   })
+
+  describe('delete confirmation', () => {
+    const createTestChore = () => ({
+      id: 'test-delete-id',
+      title: 'Chore to Delete',
+      description: '',
+      priority: 'medium' as const,
+      assigneeId: null,
+      dueDate: new Date(2026, 0, 16).toISOString(),
+      dueTime: undefined,
+      recurrenceRule: undefined,
+      completed: false,
+      createdAt: new Date().toISOString(),
+    })
+
+    it('opens confirmation dialog when delete button is clicked', async () => {
+      const user = userEvent.setup()
+      const onOpenChange = vi.fn()
+      const testChore = createTestChore()
+
+      localStorage.setItem('chores', JSON.stringify([testChore]))
+
+      renderWithProviders(
+        <ChoreForm
+          open={true}
+          onOpenChange={onOpenChange}
+          editChore={testChore}
+        />
+      )
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/title/i)).toBeInTheDocument()
+      })
+
+      // Click the Delete button
+      const deleteButton = screen.getByRole('button', { name: /^delete$/i })
+      await user.click(deleteButton)
+
+      // Confirmation dialog should appear with the title "Delete Chore"
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /delete chore/i })).toBeInTheDocument()
+      })
+    })
+
+    it('shows chore title in confirmation message', async () => {
+      const user = userEvent.setup()
+      const onOpenChange = vi.fn()
+      const testChore = createTestChore()
+
+      localStorage.setItem('chores', JSON.stringify([testChore]))
+
+      renderWithProviders(
+        <ChoreForm
+          open={true}
+          onOpenChange={onOpenChange}
+          editChore={testChore}
+        />
+      )
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/title/i)).toBeInTheDocument()
+      })
+
+      const deleteButton = screen.getByRole('button', { name: /^delete$/i })
+      await user.click(deleteButton)
+
+      // Confirmation message should include the chore title
+      await waitFor(() => {
+        expect(screen.getByText(/chore to delete/i)).toBeInTheDocument()
+      })
+    })
+
+    it('closes confirmation dialog when cancel is clicked without deleting', async () => {
+      const user = userEvent.setup()
+      const onOpenChange = vi.fn()
+      const testChore = createTestChore()
+
+      localStorage.setItem('chores', JSON.stringify([testChore]))
+
+      renderWithProviders(
+        <ChoreForm
+          open={true}
+          onOpenChange={onOpenChange}
+          editChore={testChore}
+        />
+      )
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/title/i)).toBeInTheDocument()
+      })
+
+      // Click the Delete button to open confirmation
+      const deleteButton = screen.getByRole('button', { name: /^delete$/i })
+      await user.click(deleteButton)
+
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /delete chore/i })).toBeInTheDocument()
+      })
+
+      // Click Cancel
+      const cancelButton = screen.getByRole('button', { name: /cancel/i })
+      await user.click(cancelButton)
+
+      // Confirmation dialog should close
+      await waitFor(() => {
+        expect(screen.queryByRole('heading', { name: /delete chore/i })).not.toBeInTheDocument()
+      })
+
+      // Chore should still exist in storage
+      const storedChores = JSON.parse(localStorage.getItem('chores') || '[]')
+      expect(storedChores).toHaveLength(1)
+      expect(storedChores[0].id).toBe('test-delete-id')
+    })
+
+    it('deletes chore when confirm is clicked', async () => {
+      const user = userEvent.setup()
+      const onOpenChange = vi.fn()
+      const testChore = createTestChore()
+
+      localStorage.setItem('chores', JSON.stringify([testChore]))
+
+      renderWithProviders(
+        <ChoreForm
+          open={true}
+          onOpenChange={onOpenChange}
+          editChore={testChore}
+        />
+      )
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/title/i)).toBeInTheDocument()
+      })
+
+      // Click the Delete button to open confirmation
+      const deleteButton = screen.getByRole('button', { name: /^delete$/i })
+      await user.click(deleteButton)
+
+      await waitFor(() => {
+        expect(screen.getByRole('heading', { name: /delete chore/i })).toBeInTheDocument()
+      })
+
+      // Click the confirmation Delete button (in the dialog footer)
+      const confirmDeleteButtons = screen.getAllByRole('button', { name: /^delete$/i })
+      // The second Delete button is the confirmation one
+      const confirmDeleteButton = confirmDeleteButtons[confirmDeleteButtons.length - 1]
+      await user.click(confirmDeleteButton)
+
+      // Dialog should close
+      await waitFor(() => {
+        expect(onOpenChange).toHaveBeenCalledWith(false)
+      })
+
+      // Chore should be deleted from storage
+      await waitFor(() => {
+        const storedChores = JSON.parse(localStorage.getItem('chores') || '[]')
+        expect(storedChores).toHaveLength(0)
+      })
+    })
+  })
 })

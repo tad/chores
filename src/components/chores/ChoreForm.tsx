@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -41,6 +42,7 @@ export function ChoreForm({ open, onOpenChange, editChore, initialDate }: ChoreF
   const [dueDate, setDueDate] = useState('')
   const [dueTime, setDueTime] = useState<string>('')
   const [recurrence, setRecurrence] = useState<RecurrenceConfig | null>(null)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
 
   // Convert 12-hour time format to 24-hour format
   const convertTo24Hour = (timeStr: string): string => {
@@ -141,13 +143,19 @@ export function ChoreForm({ open, onOpenChange, editChore, initialDate }: ChoreF
   }
 
   const handleDelete = () => {
+    setShowDeleteConfirm(true)
+  }
+
+  const confirmDelete = () => {
     if (editChore) {
       deleteChore(editChore.id)
+      setShowDeleteConfirm(false)
       onOpenChange(false)
     }
   }
 
   return (
+    <>
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
@@ -277,5 +285,25 @@ export function ChoreForm({ open, onOpenChange, editChore, initialDate }: ChoreF
         </form>
       </DialogContent>
     </Dialog>
+
+    <Dialog open={showDeleteConfirm} onOpenChange={setShowDeleteConfirm}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>Delete Chore</DialogTitle>
+          <DialogDescription>
+            Are you sure you want to delete "{editChore?.title}"? This action cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter className="gap-2">
+          <Button variant="outline" onClick={() => setShowDeleteConfirm(false)}>
+            Cancel
+          </Button>
+          <Button variant="destructive" onClick={confirmDelete}>
+            Delete
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
+    </>
   )
 }
