@@ -67,6 +67,9 @@ All data is stored in your browser's localStorage. This means:
 
 ## Changelog
 
+### 1.0.9
+- Added confirmation dialog when deleting a chore to prevent accidental deletions
+
 ### 1.0.8
 - Fixed bug where recurrence settings were hidden when editing existing chores
 - Existing recurrence patterns now populate correctly when editing a chore
