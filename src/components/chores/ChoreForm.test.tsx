@@ -201,4 +201,95 @@ describe('ChoreForm', () => {
       expect(submitButton).toBeDisabled()
     })
   })
+
+  describe('time input', () => {
+    it('saves chore with time when provided', async () => {
+      const user = userEvent.setup()
+      const onOpenChange = vi.fn()
+
+      renderWithProviders(
+        <ChoreForm open={true} onOpenChange={onOpenChange} />
+      )
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/title/i)).toBeInTheDocument()
+      })
+
+      await user.type(screen.getByLabelText(/title/i), 'Timed Chore')
+
+      const timeInput = screen.getByLabelText(/time/i)
+      await user.clear(timeInput)
+      await user.type(timeInput, '14:30')
+
+      await user.click(screen.getByRole('button', { name: /add chore/i }))
+
+      await waitFor(() => {
+        const storedChores = JSON.parse(localStorage.getItem('chores') || '[]')
+        expect(storedChores[0].dueTime).toBe('14:30')
+      })
+    })
+
+    it('saves chore without time when not provided', async () => {
+      const user = userEvent.setup()
+      const onOpenChange = vi.fn()
+
+      renderWithProviders(
+        <ChoreForm open={true} onOpenChange={onOpenChange} />
+      )
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/title/i)).toBeInTheDocument()
+      })
+
+      await user.type(screen.getByLabelText(/title/i), 'Untimed Chore')
+      await user.click(screen.getByRole('button', { name: /add chore/i }))
+
+      await waitFor(() => {
+        const storedChores = JSON.parse(localStorage.getItem('chores') || '[]')
+        expect(storedChores[0].dueTime).toBeUndefined()
+      })
+    })
+
+    it('preserves time when editing a chore', async () => {
+      const user = userEvent.setup()
+      const onOpenChange = vi.fn()
+
+      // First create a chore with time
+      renderWithProviders(
+        <ChoreForm open={true} onOpenChange={onOpenChange} />
+      )
+
+      await waitFor(() => {
+        expect(screen.getByLabelText(/title/i)).toBeInTheDocument()
+      })
+
+      await user.type(screen.getByLabelText(/title/i), 'Original Chore')
+      const timeInput = screen.getByLabelText(/time/i)
+      await user.clear(timeInput)
+      await user.type(timeInput, '09:00')
+      await user.click(screen.getByRole('button', { name: /add chore/i }))
+
+      await waitFor(() => {
+        const storedChores = JSON.parse(localStorage.getItem('chores') || '[]')
+        expect(storedChores).toHaveLength(1)
+      })
+
+      // Now edit the chore
+      const storedChores = JSON.parse(localStorage.getItem('chores') || '[]')
+      const choreToEdit = storedChores[0]
+
+      renderWithProviders(
+        <ChoreForm
+          open={true}
+          onOpenChange={onOpenChange}
+          editChore={choreToEdit}
+        />
+      )
+
+      await waitFor(() => {
+        const timeInputEdit = screen.getByLabelText(/time/i) as HTMLInputElement
+        expect(timeInputEdit.value).toBe('09:00')
+      })
+    })
+  })
 })

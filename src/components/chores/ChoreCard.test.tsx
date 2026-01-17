@@ -316,4 +316,71 @@ describe('ChoreCard', () => {
       expect(parentOnClick).not.toHaveBeenCalled()
     })
   })
+
+  describe('time display', () => {
+    it('displays time in 12-hour format when set', () => {
+      const onEdit = vi.fn()
+      const timedInstance: ChoreInstance = {
+        ...mockChoreInstance,
+        chore: { ...mockChoreInstance.chore, dueTime: '14:30' },
+      }
+
+      renderWithProviders(
+        <ChoreCard instance={timedInstance} onEdit={onEdit} />
+      )
+
+      expect(screen.getByText('2:30 PM')).toBeInTheDocument()
+    })
+
+    it('does not display time when not set', () => {
+      const onEdit = vi.fn()
+      renderWithProviders(
+        <ChoreCard instance={mockChoreInstance} onEdit={onEdit} />
+      )
+
+      expect(screen.queryByText(/AM|PM/)).not.toBeInTheDocument()
+    })
+
+    it('displays time in compact mode', () => {
+      const onEdit = vi.fn()
+      const timedInstance: ChoreInstance = {
+        ...mockChoreInstance,
+        chore: { ...mockChoreInstance.chore, dueTime: '09:00' },
+      }
+
+      renderWithProviders(
+        <ChoreCard instance={timedInstance} onEdit={onEdit} compact />
+      )
+
+      expect(screen.getByText('9:00 AM')).toBeInTheDocument()
+    })
+
+    it('formats noon correctly', () => {
+      const onEdit = vi.fn()
+      const noonInstance: ChoreInstance = {
+        ...mockChoreInstance,
+        chore: { ...mockChoreInstance.chore, dueTime: '12:00' },
+      }
+
+      renderWithProviders(
+        <ChoreCard instance={noonInstance} onEdit={onEdit} />
+      )
+
+      expect(screen.getByText('12:00 PM')).toBeInTheDocument()
+    })
+
+    it('formats midnight correctly', () => {
+      const onEdit = vi.fn()
+      const midnightInstance: ChoreInstance = {
+        ...mockChoreInstance,
+        chore: { ...mockChoreInstance.chore, dueTime: '00:00' },
+      }
+
+      renderWithProviders(
+        <ChoreCard instance={midnightInstance} onEdit={onEdit} />
+      )
+
+      expect(screen.getByText('12:00 AM')).toBeInTheDocument()
+    })
+  })
 })

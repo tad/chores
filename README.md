@@ -5,6 +5,7 @@ A simple, browser-based household chore management app. Keep track of tasks, ass
 ## Features
 
 - **Calendar Views** — View your chores by day, week, or month
+- **Optional Time Assignment** — Add specific times to chores (e.g., "2:30 PM") or leave them for anytime during the day. Timed chores are sorted before untimed chores.
 - **Recurring Tasks** — Set chores to repeat daily, weekly, monthly, or yearly with flexible scheduling options (e.g., "every 2 weeks on Monday and Thursday" or "the last Friday of each month")
 - **Household Members** — Add family members and assign chores to them, each with their own color for easy identification
 - **Priority Levels** — Mark chores as low, medium, or high priority
@@ -65,6 +66,12 @@ All data is stored in your browser's localStorage. This means:
 - Clearing browser data will remove your chores
 
 ## Changelog
+
+### 1.0.7
+- Added optional time support for chores with 12-hour format display (e.g., "2:30 PM")
+- Timed chores are now sorted before untimed chores on the same day
+- Times display in both compact and full calendar views
+- Added automatic 12-hour to 24-hour format conversion
 
 ### 1.0.6
 - Fixed recurring task completion bug where marking one instance as complete would hide all future instances
